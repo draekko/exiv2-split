@@ -47,8 +47,13 @@ EXIV2_RCSID("@(#) $Id$")
 // class member definitions
 namespace Exiv2 {
 
+#ifdef EXV_USING_CPP_ELEVEN
+    GifImage::GifImage(BasicIo::AutoPtr io)
+        : Image(ImageType::gif, mdNone, std::move(io))
+#else
     GifImage::GifImage(BasicIo::AutoPtr io)
         : Image(ImageType::gif, mdNone, io)
+#endif
     {
     } // GifImage::GifImage
 
@@ -111,7 +116,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newGifInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new GifImage(std::move(io)));
+#else
         Image::AutoPtr image(new GifImage(io));
+#endif
         if (!image->good())
         {
             image.reset();

@@ -50,7 +50,7 @@ namespace Exiv2 {
     //! the name of environmental variables.
     enum    EnVar       { envHTTPPOST = 0, envTIMEOUT = 1};
     //! the collection of protocols.
-    enum    Protocol    { pFile = 0, pHttp, pFtp, pHttps, pSftp, pSsh, pFileUri, pDataUri, pStdin};
+    enum    Protocol    { pFile = 0, pHttp, pFtp, pHttps, pSftp, pSsh, pBlockFileUri, pFileUri, pDataUri, pStdin};
 // *********************************************************************
 // free functions
     /*!

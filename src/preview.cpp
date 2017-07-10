@@ -95,7 +95,11 @@ namespace {
         virtual ~Loader() {}
 
         //! Loader auto pointer
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<Loader> AutoPtr;
+#else
         typedef std::auto_ptr<Loader> AutoPtr;
+#endif
 
         //! Create a Loader subclass for requested id
         static AutoPtr create(PreviewId id, const Image &image);

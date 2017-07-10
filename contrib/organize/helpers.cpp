@@ -35,7 +35,7 @@
 #include <exiv2/exif.hpp>
 #include <exiv2/iptc.hpp>
 #include <exiv2/tags.hpp>
-//#include <exiv2/xmp.hpp>
+//#include <exiv2/xmp_exiv2.hpp>
 #include <cassert>
 #include <sstream>
 #include <ctime>

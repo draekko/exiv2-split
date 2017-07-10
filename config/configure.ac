@@ -16,6 +16,10 @@ AC_CONFIG_SRCDIR([src/exif.cpp])
 AC_CONFIG_HEADER([./config/config.h])
 AC_CONFIG_AUX_DIR([./config])
 
+AC_CHECK_FILES([${srcdir}/xmpsdk/include/XMP.hpp], , [echo "Did not find XMP SDK headers"; exit -1])
+AC_CHECK_FILES([${srcdir}/xmpsdk/libXMPCore.a ${srcdir}/xmpsdk/libXMPFiles.a], , [echo "Did not find XMP SDK static lib"; exit -1])
+XMP_A_SUPPORT=yes
+
 # ---------------------------------------------------------------------------
 # Checks for programs.
 # ---------------------------------------------------------------------------
@@ -23,6 +27,7 @@ AC_CONFIG_AUX_DIR([./config])
 ac_cv_prog_cxx_g=no
 AC_PROG_CXX
 AC_PROG_CXXCPP
+AX_CXX_COMPILE_STDCXX(11, noext, optional)
 # Don't use -g to compile C code
 ac_cv_prog_cc_g=no
 AC_PROG_CC
@@ -145,12 +150,6 @@ AC_ARG_ENABLE(commercial,
 AC_MSG_RESULT($COMMERCIAL_VERSION)
 AC_SUBST(COMMERCIAL_VERSION,$COMMERCIAL_VERSION)
 
-AC_MSG_CHECKING([whether to enable XMP support (requires expat)])
-AC_ARG_ENABLE(xmp,
-    [  --disable-xmp           do not compile XMP support and the XMP Toolkit ],
-    USE_XMP_TOOLKIT=$enableval, USE_XMP_TOOLKIT=yes)
-AC_MSG_RESULT($USE_XMP_TOOLKIT)
-
 AC_MSG_CHECKING([whether to compile with video support])
 AC_ARG_ENABLE(video,
     [  --enable-video          compile with video support ],
@@ -266,8 +265,6 @@ AC_ARG_WITH(expat,
   fi
 ])
 
-ENABLE_XMP=
-if test "$USE_XMP_TOOLKIT" = "yes"; then
     # Check for expat library
     found_expat=yes
     EXPAT_CPPFLAGS=
@@ -286,17 +283,13 @@ if test "$USE_XMP_TOOLKIT" = "yes"; then
         PTHREAD="-lpthread"
     fi
     if test "$with_expat" = "no" -o "$found_expat" = "no"; then
-        AC_MSG_ERROR(either specify a valid expat installation with --with-expat=DIR or disable XMP support with --disable-xmp)
+    AC_MSG_ERROR(either specify a valid expat installation with --with-expat=DIR)
     fi
-    AC_DEFINE(HAVE_XMP_TOOLKIT,1)
-    ENABLE_XMP=1
     AC_SUBST(EXPAT_CPPFLAGS)
     AC_SUBST(EXPAT_LDFLAGS)
     AC_SUBST(EXPAT_LIBS)
     AC_CHECK_LIB(pthread, pthread_create, [PTHREAD_LIBS+=-lpthread])
     AC_SUBST(PTHREAD_LIBS)
-fi
-AC_SUBST(ENABLE_XMP)
 
 CPPFLAGS=${_cppflags}
 LDFLAGS=${_ldflags}
@@ -355,6 +348,14 @@ AC_DEFUN([AX_GCC_VERSION], [
   AC_SUBST([GCC_VERSION])
 ])
 
+AC_ARG_ENABLE(stdcpp11,
+    [  --disable-stdcpp11    do not use the c++11 standard ],
+    STDCPP11_SUPPORT=$enableval, STDCPP11_SUPPORT=$visibility)
+AC_MSG_RESULT($STDCPP11_SUPPORT)
+if test "$STDCPP11_SUPPORT" = "yes"; then
+    CPPFLAGS="${CPPFLAGS} -std=c++11 -DEXV_USING_CPP_ELEVEN"
+else
+
 # 1188 v0.26 uses c++98
 # 1188 v0.27 should have an option to specify versions such as c++11
 case "$host_os" in
@@ -371,6 +372,11 @@ case "$host_os" in
         fi
     ;;
 esac
+fi
+
+if test "$XMP_A_SUPPORT" = "yes"; then
+    CPPFLAGS="${CPPFLAGS} -DEXV_HAVE_XMP_TOOLKIT"
+fi
 
 # ---------------------------------------------------------------------------
 # Create output files.
@@ -424,17 +430,6 @@ esac
 case "$USE_LENSDATA" in
 yes) echo "-- Nikon lens database............ YES" ;;
 *)   echo "-- Nikon lens database............ NO" ;;
-esac
-
-case "$USE_XMP_TOOLKIT" in
-yes) echo "-- XMP metadata support........... YES" ;;
-*)   echo "-- XMP metadata support........... NO"
-     echo ""
-     echo "Expat is required for XMP support. Make sure the Expat header"
-     echo "files are installed and use --with-expat=DIR if it is in a"
-     echo "non-standard location. You can get Expat from"
-     echo "http://expat.sourceforge.net/"
-     echo "" ;;
 esac
 
 case "x$ENABLE_VIDEO" in

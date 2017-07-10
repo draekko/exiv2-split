@@ -49,8 +49,13 @@ EXIV2_RCSID("@(#) $Id$")
 // class member definitions
 namespace Exiv2 {
 
+#ifdef EXV_USING_CPP_ELEVEN
+    MrwImage::MrwImage(BasicIo::AutoPtr io, bool /*create*/)
+        : Image(ImageType::mrw, mdExif | mdIptc | mdXmp, std::move(io))
+#else
     MrwImage::MrwImage(BasicIo::AutoPtr io, bool /*create*/)
         : Image(ImageType::mrw, mdExif | mdIptc | mdXmp, io)
+#endif
     {
     } // MrwImage::MrwImage
 
@@ -158,7 +163,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newMrwInstance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new MrwImage(std::move(io), create));
+#else
         Image::AutoPtr image(new MrwImage(io, create));
+#endif
         if (!image->good()) {
             image.reset();
         }

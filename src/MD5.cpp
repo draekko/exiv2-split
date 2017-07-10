@@ -20,6 +20,9 @@
  * Still in the public domain.
  */
 
+#ifdef EXV_USING_CPP_ELEVEN
+#include <cstdint>
+#endif
 #include <cstring>
 
 #include "MD5.h"
@@ -46,7 +49,7 @@ byteSwap(UWORD32 *buf, unsigned words)
  * initialization constants.
  */
 void
-MD5Init(struct MD5_CTX *ctx)
+EXIV2_MD5Init(struct MD5_CTX *ctx)
 {
 	ctx->buf[0] = 0x67452301;
 	ctx->buf[1] = 0xefcdab89;
@@ -62,7 +65,7 @@ MD5Init(struct MD5_CTX *ctx)
  * of bytes.
  */
 void
-MD5Update(struct MD5_CTX *ctx, md5byte const *buf, unsigned len)
+EXIV2_MD5Update(struct MD5_CTX *ctx, md5byte const *buf, unsigned len)
 {
 	UWORD32 t;
 
@@ -80,7 +83,7 @@ MD5Update(struct MD5_CTX *ctx, md5byte const *buf, unsigned len)
 	/* First chunk is an odd size */
 	memcpy((md5byte *)ctx->in + 64 - t, buf, t);
 	byteSwap(ctx->in, 16);
-	MD5Transform(ctx->buf, ctx->in);
+	EXIV2_MD5Transform(ctx->buf, ctx->in);
 	buf += t;
 	len -= t;
 
@@ -88,7 +91,7 @@ MD5Update(struct MD5_CTX *ctx, md5byte const *buf, unsigned len)
 	while (len >= 64) {
 		memcpy(ctx->in, buf, 64);
 		byteSwap(ctx->in, 16);
-		MD5Transform(ctx->buf, ctx->in);
+		EXIV2_MD5Transform(ctx->buf, ctx->in);
 		buf += 64;
 		len -= 64;
 	}
@@ -98,11 +101,11 @@ MD5Update(struct MD5_CTX *ctx, md5byte const *buf, unsigned len)
 }
 
 /*
- * Final wrapup - pad to 64-byte boundary with the bit pattern 
+ * Final wrapup - pad to 64-byte boundary with the bit pattern
  * 1 0* (64-bit count of bits processed, MSB-first)
  */
 void
-MD5Final(md5byte digest[16], struct MD5_CTX *ctx)
+EXIV2_MD5Final(md5byte digest[16], struct MD5_CTX *ctx)
 {
 	int count = ctx->bytes[0] & 0x3f;	/* Number of bytes in ctx->in */
 	md5byte *p = (md5byte *)ctx->in + count;
@@ -116,7 +119,7 @@ MD5Final(md5byte digest[16], struct MD5_CTX *ctx)
 	if (count < 0) {	/* Padding forces an extra block */
 		memset(p, 0, count + 8);
 		byteSwap(ctx->in, 16);
-		MD5Transform(ctx->buf, ctx->in);
+		EXIV2_MD5Transform(ctx->buf, ctx->in);
 		p = (md5byte *)ctx->in;
 		count = 56;
 	}
@@ -126,7 +129,7 @@ MD5Final(md5byte digest[16], struct MD5_CTX *ctx)
 	/* Append length in bits and transform */
 	ctx->in[14] = ctx->bytes[0] << 3;
 	ctx->in[15] = ctx->bytes[1] << 3 | ctx->bytes[0] >> 29;
-	MD5Transform(ctx->buf, ctx->in);
+	EXIV2_MD5Transform(ctx->buf, ctx->in);
 
 	byteSwap(ctx->buf, 4);
 	memcpy(digest, ctx->buf, 16);
@@ -151,9 +154,13 @@ MD5Final(md5byte digest[16], struct MD5_CTX *ctx)
  * the data and converts bytes into longwords for this routine.
  */
 void
-MD5Transform(UWORD32 buf[4], UWORD32 const in[16])
+EXIV2_MD5Transform(UWORD32 buf[4], UWORD32 const in[16])
 {
+#ifdef EXV_USING_CPP_ELEVEN
+	UWORD32 a, b, c, d;
+#else
 	register UWORD32 a, b, c, d;
+#endif
 
 	a = buf[0];
 	b = buf[1];

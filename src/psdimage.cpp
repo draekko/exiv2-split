@@ -125,8 +125,13 @@ enum {
 // class member definitions
 namespace Exiv2 {
 
+#ifdef EXV_USING_CPP_ELEVEN
+    PsdImage::PsdImage(BasicIo::AutoPtr io)
+        : Image(ImageType::psd, mdExif | mdIptc | mdXmp, std::move(io))
+#else
     PsdImage::PsdImage(BasicIo::AutoPtr io)
         : Image(ImageType::psd, mdExif | mdIptc | mdXmp, io)
+#endif
     {
     } // PsdImage::PsdImage
 
@@ -683,7 +688,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newPsdInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new PsdImage(std::move(io)));
+#else
         Image::AutoPtr image(new PsdImage(io));
+#endif
         if (!image->good())
         {
             image.reset();

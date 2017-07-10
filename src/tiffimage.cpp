@@ -75,9 +75,15 @@ namespace Exiv2 {
 
     using namespace Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    TiffImage::TiffImage(BasicIo::AutoPtr io, bool /*create*/)
+        : Image(ImageType::tiff, mdExif | mdIptc | mdXmp, std::move(io)),
+          pixelWidth_(0), pixelHeight_(0)
+#else
     TiffImage::TiffImage(BasicIo::AutoPtr io, bool /*create*/)
         : Image(ImageType::tiff, mdExif | mdIptc | mdXmp, io),
           pixelWidth_(0), pixelHeight_(0)
+#endif
     {
     } // TiffImage::TiffImage
 
@@ -188,7 +194,10 @@ namespace Exiv2 {
         // recursively print the structure to /dev/null to ensure all metadata is in memory
         // must be recursive to handle NEFs which stores the raw image in a subIFDs
         std::ofstream devnull;
+        if (nullptr != dynamic_cast<RemoteIo*>(io_.get()))
+        {
         printStructure(devnull,kpsRecursive,0);
+        }
         ByteOrder bo = TiffParser::decode(exifData_,
                                           iptcData_,
                                           xmpData_,
@@ -293,7 +302,11 @@ namespace Exiv2 {
                      ed.end());
         }
 
+#ifdef EXV_USING_CPP_ELEVEN
+        std::unique_ptr<TiffHeaderBase> header(new TiffHeader(byteOrder));
+#else
         std::auto_ptr<TiffHeaderBase> header(new TiffHeader(byteOrder));
+#endif
         return TiffParserWorker::encode(io,
                                         pData,
                                         size,
@@ -310,7 +323,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newTiffInstance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new TiffImage(std::move(io), create));
+#else
         Image::AutoPtr image(new TiffImage(io, create));
+#endif
         if (!image->good()) {
             image.reset();
         }
@@ -1841,7 +1858,11 @@ namespace Exiv2 {
     TiffComponent::AutoPtr TiffCreator::create(uint32_t extendedTag,
                                                IfdId    group)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        TiffComponent::AutoPtr tc(nullptr);
+#else
         TiffComponent::AutoPtr tc(0);
+#endif
         uint16_t tag = static_cast<uint16_t>(extendedTag & 0xffff);
         const TiffGroupStruct* ts = find(tiffGroupStruct_,
                                          TiffGroupStruct::Key(extendedTag, group));
@@ -1892,9 +1913,17 @@ namespace Exiv2 {
     )
     {
         // Create standard TIFF header if necessary
+#ifdef EXV_USING_CPP_ELEVEN
+        std::unique_ptr<TiffHeaderBase> ph;
+#else
         std::auto_ptr<TiffHeaderBase> ph;
+#endif
         if (!pHeader) {
+#ifdef EXV_USING_CPP_ELEVEN
+            ph = std::unique_ptr<TiffHeaderBase>(new TiffHeader);
+#else
             ph = std::auto_ptr<TiffHeaderBase>(new TiffHeader);
+#endif
             pHeader = ph.get();
         }
         TiffComponent::AutoPtr rootDir = parse(pData, size, root, pHeader);
@@ -1999,7 +2028,11 @@ namespace Exiv2 {
               TiffHeaderBase*    pHeader
     )
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        if (pData == 0 || size == 0) return TiffComponent::AutoPtr(nullptr);
+#else
         if (pData == 0 || size == 0) return TiffComponent::AutoPtr(0);
+#endif
         if (!pHeader->read(pData, size) || pHeader->offset() >= size) {
             throw Error(3, "TIFF");
         }

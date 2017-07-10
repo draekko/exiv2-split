@@ -33,6 +33,8 @@ EXIV2_RCSID("@(#) $Id$")
 // included header files
 #include "config.h"
 
+#include <iostream>
+
 #ifdef EXV_ENABLE_VIDEO
 #include "quicktimevideo.hpp"
 #include "futils.hpp"
@@ -40,6 +42,28 @@ EXIV2_RCSID("@(#) $Id$")
 #include "tags.hpp"
 // + standard includes
 #include <cmath>
+
+#include "xmp_exiv2.hpp"
+#include "types.hpp"
+#include "error.hpp"
+#include "value.hpp"
+#include "properties.hpp"
+
+// + standard includes
+#include <iostream>
+#include <algorithm>
+#include <cassert>
+#include <string>
+#ifdef EXV_USING_CPP_ELEVEN
+#include <mutex>
+#endif
+
+// Adobe XMP Toolkit
+#ifdef EXV_HAVE_XMP_TOOLKIT
+# define TXMP_STRING_TYPE std::string
+# include <XMP.hpp>
+# include <XMP.incl_cpp>
+#endif // EXV_HAVE_XMP_TOOLKIT
 
 // *****************************************************************************
 // class member definitions
@@ -611,9 +635,15 @@ namespace Exiv2 {
 
     using namespace Exiv2::Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    QuickTimeVideo::QuickTimeVideo(BasicIo::AutoPtr io)
+            : Image(ImageType::qtime, mdNone, std::move(io))
+            , timeScale_(1)
+#else
     QuickTimeVideo::QuickTimeVideo(BasicIo::AutoPtr io)
             : Image(ImageType::qtime, mdNone, io)
             , timeScale_(1)
+#endif
     {
     } // QuickTimeVideo::QuickTimeVideo
 
@@ -683,6 +713,9 @@ namespace Exiv2 {
 
         else if (dataIgnoreList(buf))
             decodeBlock();
+
+        else if (equalsQTimeTag(buf, "uuid"))
+            uuidXMPTagsDecoder(size);
 
         else if (equalsQTimeTag(buf, "ftyp"))
             fileTypeDecoder(size);
@@ -781,6 +814,60 @@ namespace Exiv2 {
 
         io_->seek(cur_pos + size, BasicIo::beg);
     } // QuickTimeVideo::previewTagDecoder
+
+    void QuickTimeVideo::uuidXMPTagsDecoder(unsigned long size)
+    {
+#ifdef EXV_HAVE_XMP_TOOLKIT
+		if (size > 16) {
+			DataBuf buf(size);
+			uint64_t cur_pos = io_->tell();
+			io_->read(buf.pData_, 16);
+			/* Verify signature */
+			if (buf.pData_[0] != 0xBE &&
+				buf.pData_[0] != 0x7A &&
+				buf.pData_[0] != 0xCF &&
+				buf.pData_[0] != 0xCB &&
+				buf.pData_[0] != 0x97 &&
+				buf.pData_[0] != 0xA9 &&
+				buf.pData_[0] != 0x42 &&
+				buf.pData_[0] != 0xE8) {
+				return;
+			}
+			io_->read(buf.pData_, size - 16);
+			/* Verify that payload is correct */
+#ifdef WIN32
+			std::string datacomp((char*)buf.pData_, size - 16);
+#else
+			std::string datacomp((char*)buf.pData_);
+#endif
+			if (datacomp.find("<?xpacket") == 0) {
+				xmpPacket_.assign(reinterpret_cast<char*>(buf.pData_), size - 16);
+				if (xmpPacket_.size() > 0 && XmpParser::videodecode(xmpData_, xmpPacket_)) {
+#ifndef SUPPRESS_WARNINGS
+					EXV_WARNING << "Failed to decode some or all of the XMP metadata." << std::endl;
+#endif
+				}
+			}
+			io_->seek(cur_pos + size, BasicIo::beg);
+		}
+#endif // EXV_HAVE_XMP_TOOLKIT
+    }
+
+    void QuickTimeVideo::XMPTagsDecoder(unsigned long size)
+    {
+#ifdef EXV_HAVE_XMP_TOOLKIT
+        DataBuf buf(size);
+        uint64_t cur_pos = io_->tell();
+        io_->read(buf.pData_, size);
+        xmpPacket_.assign(reinterpret_cast<char*>(buf.pData_), size);
+        if (xmpPacket_.size() > 0 && XmpParser::videodecode(xmpData_, xmpPacket_)) {
+#ifndef SUPPRESS_WARNINGS
+            EXV_WARNING << "Failed to decode some or all of the XMP metadata." << std::endl;
+#endif
+        }
+        io_->seek(cur_pos + size, BasicIo::beg);
+#endif // EXV_HAVE_XMP_TOOLKIT
+    }
 
     void QuickTimeVideo::keysTagDecoder(unsigned long size)
     {
@@ -917,6 +1004,9 @@ namespace Exiv2 {
             else if(equalsQTimeTag(buf, "TAGS"))
                 CameraTagsDecoder(size - 8);
 
+            else if(equalsQTimeTag(buf, "XMP_"))
+                XMPTagsDecoder(size - 8);
+
             else if(equalsQTimeTag(buf, "CNCV") || equalsQTimeTag(buf, "CNFV")
                     || equalsQTimeTag(buf, "CNMN") || equalsQTimeTag(buf, "NCHD")
                     || equalsQTimeTag(buf, "FFMV")) {
@@ -937,6 +1027,7 @@ namespace Exiv2 {
 
             else if(tv) {
                 io_->read(buf.pData_, 4);
+                std::memset(buf.pData_, 0x0, buf.size_);
                 io_->read(buf.pData_, size-12);
                 xmpData_[exvGettext(tv->label_)] = Exiv2::toString(buf.pData_);
             }
@@ -1632,7 +1723,11 @@ namespace Exiv2 {
 
 
     Image::AutoPtr newQTimeInstance(BasicIo::AutoPtr io, bool /*create*/) {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new QuickTimeVideo(std::move(io)));
+#else
         Image::AutoPtr image(new QuickTimeVideo(io));
+#endif
         if (!image->good()) {
             image.reset();
         }

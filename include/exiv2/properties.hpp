@@ -249,7 +249,11 @@ namespace Exiv2 {
     class EXIV2API XmpKey : public Key {
     public:
         //! Shortcut for an %XmpKey auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<XmpKey> AutoPtr;
+#else
         typedef std::auto_ptr<XmpKey> AutoPtr;
+#endif
 
         //! @name Creators
         //@{

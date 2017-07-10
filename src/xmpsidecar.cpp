@@ -36,7 +36,7 @@ EXIV2_RCSID("@(#) $Id$")
 #include "image.hpp"
 #include "basicio.hpp"
 #include "error.hpp"
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 #include "futils.hpp"
 #include "convert.hpp"
 
@@ -56,8 +56,13 @@ namespace {
 namespace Exiv2 {
 
 
+#ifdef EXV_USING_CPP_ELEVEN
+    XmpSidecar::XmpSidecar(BasicIo::AutoPtr io, bool create)
+        : Image(ImageType::xmp, mdXmp, std::move(io))
+#else
     XmpSidecar::XmpSidecar(BasicIo::AutoPtr io, bool create)
         : Image(ImageType::xmp, mdXmp, io)
+#endif
     {
         if (create) {
             if (io_->open() == 0) {
@@ -175,7 +180,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newXmpInstance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new XmpSidecar(std::move(io), create));
+#else
         Image::AutoPtr image(new XmpSidecar(io, create));
+#endif
         if (!image->good()) {
             image.reset();
         }

@@ -250,6 +250,7 @@ namespace Exiv2 {
         , { "sftp://"   ,pSftp     }
         , { "ssh://"    ,pSsh      }
         , { "file://"   ,pFileUri  }
+        , { "blockfile://"   ,pBlockFileUri  }
         , { "data://"   ,pDataUri  }
         , { "-"         ,pStdin    }
         };
@@ -272,6 +273,7 @@ namespace Exiv2 {
         , { L"sftp://"   ,pSftp     }
         , { L"ssh://"    ,pSsh      }
         , { L"file://"   ,pFileUri  }
+        , { L"blockfile://"   ,pBlockFileUri  }
         , { L"data://"   ,pDataUri  }
         , { L"-"         ,pStdin    }
         };
@@ -416,9 +418,18 @@ namespace Exiv2 {
         iterator_t hostStart = authEnd;
         iterator_t pathStart = std::find(hostStart, uriEnd, '/');  // get pathStart
 
-        iterator_t hostEnd = std::find(authEnd,
+		    iterator_t hostEnd;
+#ifdef WIN32
+		    if (result.Protocol != "blockfile") {
+#endif
+    			  hostEnd = std::find(authEnd,
             (pathStart != uriEnd) ? pathStart : queryStart,
             ':');  // check for port
+#ifdef WIN32
+		    } else {
+			      hostEnd = pathStart;
+		    }
+#endif
 
         result.Host = std::string(hostStart, hostEnd);
 
@@ -432,8 +443,13 @@ namespace Exiv2 {
         if ( !result.Port.length() && result.Protocol == "http" ) result.Port = "80";
 
         // path
+#ifdef WIN32
+		    if (pathStart != uriEnd || result.Protocol == "blockfile")
+			      result.Path = std::string(pathStart, queryStart);
+#else
         if (pathStart != uriEnd)
             result.Path = std::string(pathStart, queryStart);
+#endif
 
         // query
         if (queryStart != uriEnd)

@@ -586,8 +586,13 @@ namespace Exiv2 {
     DataBuf PngChunk::readRawProfile(const DataBuf& text,bool iTXt)
     {
         DataBuf                 info;
+#ifdef EXV_USING_CPP_ELEVEN
+        long           i;
+        unsigned char *dp;
+#else
         register long           i;
         register unsigned char *dp;
+#endif
         const char             *sp;
         unsigned int            nibbles;
         long                    length;

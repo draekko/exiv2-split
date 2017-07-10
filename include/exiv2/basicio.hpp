@@ -67,8 +67,11 @@ namespace Exiv2 {
     class EXIV2API BasicIo {
     public:
         //! BasicIo auto_ptr type
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<BasicIo> AutoPtr;
+#else
         typedef std::auto_ptr<BasicIo> AutoPtr;
-
+#endif
         //! Seek starting positions
         enum Position { beg, cur, end };
 
@@ -524,16 +527,16 @@ namespace Exiv2 {
         virtual void populateFakeData();
         //@}
 
+        // Pimpl idiom
+        class Impl;
+        Impl* p_;
+
     private:
         // NOT IMPLEMENTED
         //! Copy constructor
         FileIo(FileIo& rhs);
         //! Assignment operator
         FileIo& operator=(const FileIo& rhs);
-
-        // Pimpl idiom
-        class Impl;
-        Impl* p_;
 
     }; // class FileIo
 
@@ -1217,6 +1220,49 @@ namespace Exiv2 {
         //@}
     };
 #endif
+
+    /*!
+    @brief Provides the BlockFile read/write access for the RemoteIo.
+     */
+    class EXIV2API BlockFileIo : public RemoteIo {
+    public:
+        //! @name Creators
+        //@{
+        /*!
+          @brief Constructor that accepts the BlockFile URL on which IO will be
+              performed. The constructor does not open the file, and
+              therefore never failes.
+          @param url The full path of url
+          @param blockSize the size of the memory block. The file content is
+                divided into the memory blocks. These blocks are populated
+                on demand from the server, so it avoids copying the complete file.
+         */
+        BlockFileIo(const std::string&  path,  size_t blockSize = 1024);
+#ifdef EXV_UNICODE_PATH
+        /*!
+          @brief Like BlockFileIo(const std::string& url, size_t blockSize = 1024) but accepts a
+              unicode url in an std::wstring.
+          @note This constructor is only available on Windows.
+         */
+        BlockFileIo(const std::wstring& wpath, size_t blockSize = 1024);
+#endif
+        //@}
+    protected:
+        // NOT IMPLEMENTED
+        //! Copy constructor
+        BlockFileIo(BlockFileIo& rhs);
+        //! Assignment operator
+        BlockFileIo& operator=(const BlockFileIo& rhs);
+        // Pimpl idiom
+        class BlockFileImpl;
+
+        //! @name Creators
+        //@{
+        //! Default Destructor
+        virtual ~BlockFileIo(){}
+        //@}
+    };
+
 
 // *****************************************************************************
 // template, inline and free functions

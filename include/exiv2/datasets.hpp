@@ -280,7 +280,11 @@ namespace Exiv2 {
     class EXIV2API IptcKey : public Key {
     public:
         //! Shortcut for an %IptcKey auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<IptcKey> AutoPtr;
+#else
         typedef std::auto_ptr<IptcKey> AutoPtr;
+#endif
 
         //! @name Creators
         //@{

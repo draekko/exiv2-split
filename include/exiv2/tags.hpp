@@ -150,7 +150,11 @@ namespace Exiv2 {
     class EXIV2API ExifKey : public Key {
     public:
         //! Shortcut for an %ExifKey auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<ExifKey> AutoPtr;
+#else
         typedef std::auto_ptr<ExifKey> AutoPtr;
+#endif
 
         //! @name Creators
         //@{

@@ -88,6 +88,7 @@ CCSRC =  basicio.cpp           \
 	 jp2image.cpp          \
 	 jpgimage.cpp          \
 	 makernote.cpp         \
+	 MD5.cpp               \
 	 metadatum.cpp         \
 	 minoltamn.cpp         \
 	 mrwimage.cpp          \
@@ -121,7 +122,7 @@ CCSRC += sigmamn.cpp       \
 	 value.cpp             \
 	 version.cpp           \
 	 webpimage.cpp         \
-	 xmp.cpp               \
+	 xmp_exiv2.cpp         \
 	 xmpsidecar.cpp
 ifdef ENABLE_VIDEO
 CCSRC += asfvideo.cpp      \
@@ -159,8 +160,8 @@ SHELL = /bin/bash
 .PRECIOUS: %.cpp
 
 CPPFLAGS += $(SSH_CPPFLAGS) $(CURL_CPPFLAGS) $(XMPSDK_CPPFLAGS)
-LDFLAGS  += $(SSH_LDFLAGS) $(CURL_LDFLAGS) $(EXPAT_LDFLAGS) $(XMPSDK_LDFLAGS)
-LIBS     += $(SSH_LIBS) $(CURL_LIBS) $(EXPAT_LIBS) $(XMPSDK_LIBS)
+LDFLAGS  += $(SSH_LDFLAGS) $(CURL_LDFLAGS) $(XMPSDK_LDFLAGS)
+LIBS     += $(SSH_LIBS) $(CURL_LIBS) $(XMPSDK_LIBRARIES)
 
 # Generic variables
 CCHDR := $(CCHDR) $(CCSRC:.cpp=.hpp)
@@ -247,7 +248,7 @@ $(BINARY): %: %.o lib
 
 $(EXIV2EXE): lib $(EXIV2OBJ) $(EXIV2COBJ)
 	mkdir -pv ../bin 2>&1 > /dev/null
-	@$(LIBTOOL) --mode=link $(LINK.cc) -o ../bin/$@ $(LIBRARY) $(EXIV2OBJ) $(EXIV2COBJ) -rpath $(libdir)
+	@$(LIBTOOL) --mode=link $(LINK.cc)  $(EXIV2OBJ) $(EXIV2COBJ) -o ../bin/$@ -rdynamic $(LIBRARY) -rpath $(libdir) -Wl,-rpath,$(top_srcdir)/xmpsdk $(XMPSDK_STATIC_LIBS)
 
 install-header:
 	$(INSTALL_DIRS) $(DESTDIR)$(incdir)

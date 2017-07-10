@@ -65,8 +65,13 @@ namespace Exiv2 {
 namespace Exiv2 {
     using namespace Exiv2::Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    WebPImage::WebPImage(BasicIo::AutoPtr io)
+    : Image(ImageType::webp, mdNone, std::move(io))
+#else
     WebPImage::WebPImage(BasicIo::AutoPtr io)
     : Image(ImageType::webp, mdNone, io)
+#endif
     {
     } // WebPImage::WebPImage
 
@@ -687,7 +692,11 @@ namespace Exiv2 {
 
     Image::AutoPtr newWebPInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new WebPImage(std::move(io)));
+#else
         Image::AutoPtr image(new WebPImage(io));
+#endif
         if (!image->good()) {
             image.reset();
         }

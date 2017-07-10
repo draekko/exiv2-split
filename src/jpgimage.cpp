@@ -302,9 +302,15 @@ namespace Exiv2 {
 
     } // Photoshop::setIptcIrb
 
+#ifdef EXV_USING_CPP_ELEVEN
+    JpegBase::JpegBase(int type, BasicIo::AutoPtr io, bool create,
+                       const byte initData[], long dataSize)
+        : Image(type, mdExif | mdIptc | mdXmp | mdComment, std::move(io))
+#else
     JpegBase::JpegBase(int type, BasicIo::AutoPtr io, bool create,
                        const byte initData[], long dataSize)
         : Image(type, mdExif | mdIptc | mdXmp | mdComment, io)
+#endif
     {
         if (create) {
             initImage(initData, dataSize);
@@ -1237,8 +1243,13 @@ namespace Exiv2 {
         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xFF,0xDA,0x00,0x0C,0x03,0x01,0x00,0x02,
         0x11,0x03,0x11,0x00,0x3F,0x00,0xA0,0x00,0x0F,0xFF,0xD9 };
 
+#ifdef EXV_USING_CPP_ELEVEN
+    JpegImage::JpegImage(BasicIo::AutoPtr io, bool create)
+        : JpegBase(ImageType::jpeg, std::move(io), create, blank_, sizeof(blank_))
+#else
     JpegImage::JpegImage(BasicIo::AutoPtr io, bool create)
         : JpegBase(ImageType::jpeg, io, create, blank_, sizeof(blank_))
+#endif
     {
     }
 
@@ -1265,7 +1276,11 @@ namespace Exiv2 {
 
     Image::AutoPtr newJpegInstance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new JpegImage(std::move(io), create));
+#else
         Image::AutoPtr image(new JpegImage(io, create));
+#endif
         if (!image->good()) {
             image.reset();
         }
@@ -1289,8 +1304,13 @@ namespace Exiv2 {
     const char ExvImage::exiv2Id_[] = "Exiv2";
     const byte ExvImage::blank_[] = { 0xff,0x01,'E','x','i','v','2',0xff,0xd9 };
 
+#ifdef EXV_USING_CPP_ELEVEN
+    ExvImage::ExvImage(BasicIo::AutoPtr io, bool create)
+        : JpegBase(ImageType::exv, std::move(io), create, blank_, sizeof(blank_))
+#else
     ExvImage::ExvImage(BasicIo::AutoPtr io, bool create)
         : JpegBase(ImageType::exv, io, create, blank_, sizeof(blank_))
+#endif
     {
     }
 
@@ -1319,7 +1339,11 @@ namespace Exiv2 {
     Image::AutoPtr newExvInstance(BasicIo::AutoPtr io, bool create)
     {
         Image::AutoPtr image;
+#ifdef EXV_USING_CPP_ELEVEN
+        image = Image::AutoPtr(new ExvImage(std::move(io), create));
+#else
         image = Image::AutoPtr(new ExvImage(io, create));
+#endif
         if (!image->good()) image.reset();
         return image;
     }

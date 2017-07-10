@@ -141,8 +141,13 @@ struct Jp2UuidBox
 namespace Exiv2
 {
 
+#ifdef EXV_USING_CPP_ELEVEN
+    Jp2Image::Jp2Image(BasicIo::AutoPtr io, bool create)
+            : Image(ImageType::jp2, mdExif | mdIptc | mdXmp, std::move(io))
+#else
     Jp2Image::Jp2Image(BasicIo::AutoPtr io, bool create)
             : Image(ImageType::jp2, mdExif | mdIptc | mdXmp, io)
+#endif
     {
         if (create)
         {
@@ -911,7 +916,11 @@ namespace Exiv2
     // free functions
     Image::AutoPtr newJp2Instance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new Jp2Image(std::move(io), create));
+#else
         Image::AutoPtr image(new Jp2Image(io, create));
+#endif
         if (!image->good())
         {
             image.reset();

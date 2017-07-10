@@ -35,7 +35,7 @@ EXIV2_RCSID("@(#) $Id$")
 #include "types.hpp"
 #include "exif.hpp"
 #include "iptc.hpp"
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 #include "futils.hpp"
 #include "convert.hpp"
 
@@ -63,7 +63,7 @@ EXIV2_RCSID("@(#) $Id$")
 // Adobe XMP Toolkit
 #ifdef EXV_HAVE_XMP_TOOLKIT
 # define TXMP_STRING_TYPE std::string
-# include <XMPSDK.hpp>
+# include <XMP.hpp>
 # include <MD5.h>
 #endif // EXV_HAVE_XMP_TOOLKIT
 
@@ -1182,7 +1182,7 @@ namespace Exiv2 {
         MD5_CTX    context;
         unsigned char digest[16];
 
-        MD5Init ( &context );
+        EXIV2_MD5Init ( &context );
         for (unsigned int i = 0; i < EXV_COUNTOF(conversion_); ++i) {
             const Conversion& c = conversion_[i];
             if (c.metadataId_ == mdExif) {
@@ -1196,10 +1196,10 @@ namespace Exiv2 {
                 if (pos == exifData_->end()) continue;
                 DataBuf data(pos->size());
                 pos->copy(data.pData_, littleEndian /* FIXME ? */);
-                MD5Update ( &context, data.pData_, data.size_);
+                EXIV2_MD5Update ( &context, data.pData_, data.size_);
             }
         }
-        MD5Final(digest, &context);
+        EXIV2_MD5Final(digest, &context);
         res << ';';
         res << std::setw(2) << std::setfill('0') << std::hex << std::uppercase;
         for (int i = 0; i < 16; ++i) {
@@ -1268,11 +1268,11 @@ namespace Exiv2 {
         MD5_CTX context;
         unsigned char digest[16];
 
-        MD5Init(&context);
+        EXIV2_MD5Init(&context);
 
         DataBuf data = IptcParser::encode(*iptcData_);
-        MD5Update(&context, data.pData_, data.size_);
-        MD5Final(digest, &context);
+        EXIV2_MD5Update(&context, data.pData_, data.size_);
+        EXIV2_MD5Final(digest, &context);
         res << std::setw(2) << std::setfill('0') << std::hex << std::uppercase;
         for (int i = 0; i < 16; ++i) {
             res << static_cast<int>(digest[i]);

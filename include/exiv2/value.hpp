@@ -63,7 +63,11 @@ namespace Exiv2 {
     class EXIV2API Value {
     public:
         //! Shortcut for a %Value auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<Value> AutoPtr;
+#else
         typedef std::auto_ptr<Value> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -265,7 +269,11 @@ namespace Exiv2 {
     class EXIV2API DataValue : public Value {
     public:
         //! Shortcut for a %DataValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<DataValue> AutoPtr;
+#else
         typedef std::auto_ptr<DataValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -352,7 +360,11 @@ namespace Exiv2 {
     class EXIV2API StringValueBase : public Value {
     public:
         //! Shortcut for a %StringValueBase auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<StringValueBase> AutoPtr;
+#else
         typedef std::auto_ptr<StringValueBase> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -434,7 +446,11 @@ namespace Exiv2 {
     class EXIV2API StringValue : public StringValueBase {
     public:
         //! Shortcut for a %StringValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<StringValue> AutoPtr;
+#else
         typedef std::auto_ptr<StringValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -466,7 +482,11 @@ namespace Exiv2 {
     class EXIV2API AsciiValue : public StringValueBase {
     public:
         //! Shortcut for a %AsciiValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<AsciiValue> AutoPtr;
+#else
         typedef std::auto_ptr<AsciiValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -553,7 +573,11 @@ namespace Exiv2 {
         }; // class CharsetInfo
 
         //! Shortcut for a %CommentValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<CommentValue> AutoPtr;
+#else
         typedef std::auto_ptr<CommentValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -640,7 +664,11 @@ namespace Exiv2 {
     class EXIV2API XmpValue : public Value {
     public:
         //! Shortcut for a %XmpValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<XmpValue> AutoPtr;
+#else
         typedef std::auto_ptr<XmpValue> AutoPtr;
+#endif
 
         //! XMP array types.
         enum XmpArrayType { xaNone, xaAlt, xaBag, xaSeq };
@@ -731,7 +759,11 @@ namespace Exiv2 {
     class EXIV2API XmpTextValue : public XmpValue {
     public:
         //! Shortcut for a %XmpTextValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<XmpTextValue> AutoPtr;
+#else
         typedef std::auto_ptr<XmpTextValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -813,7 +845,11 @@ namespace Exiv2 {
     class EXIV2API XmpArrayValue : public XmpValue {
     public:
         //! Shortcut for a %XmpArrayValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<XmpArrayValue> AutoPtr;
+#else
         typedef std::auto_ptr<XmpArrayValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -910,7 +946,11 @@ namespace Exiv2 {
     class EXIV2API LangAltValue : public XmpValue {
     public:
         //! Shortcut for a %LangAltValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<LangAltValue> AutoPtr;
+#else
         typedef std::auto_ptr<LangAltValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -998,7 +1038,11 @@ namespace Exiv2 {
     class EXIV2API DateValue : public Value {
     public:
         //! Shortcut for a %DateValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<DateValue> AutoPtr;
+#else
         typedef std::auto_ptr<DateValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -1099,7 +1143,11 @@ namespace Exiv2 {
     class EXIV2API TimeValue : public Value {
     public:
         //! Shortcut for a %TimeValue auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<TimeValue> AutoPtr;
+#else
         typedef std::auto_ptr<TimeValue> AutoPtr;
+#endif
 
         //! @name Creators
         //@{
@@ -1255,7 +1303,11 @@ namespace Exiv2 {
     class ValueType : public Value {
     public:
         //! Shortcut for a %ValueType\<T\> auto pointer.
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<ValueType<T> > AutoPtr;
+#else
         typedef std::auto_ptr<ValueType<T> > AutoPtr;
+#endif
 
         //! @name Creators
         //@{

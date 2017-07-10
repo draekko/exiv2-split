@@ -54,8 +54,13 @@ namespace Exiv2 {
 
     using namespace Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    OrfImage::OrfImage(BasicIo::AutoPtr io, bool create)
+        : TiffImage(/*ImageType::orf, mdExif | mdIptc | mdXmp,*/ std::move(io),create)
+#else
     OrfImage::OrfImage(BasicIo::AutoPtr io, bool create)
         : TiffImage(/*ImageType::orf, mdExif | mdIptc | mdXmp,*/ io,create)
+#endif
     {
     	setTypeSupported(ImageType::orf, mdExif | mdIptc | mdXmp);
     } // OrfImage::OrfImage
@@ -120,7 +125,10 @@ namespace Exiv2 {
         }
         clearMetadata();
         std::ofstream devnull;
+        if (nullptr != dynamic_cast<RemoteIo*>(io_.get()))
+        {
         printStructure(devnull, kpsRecursive, 0);
+        }
         ByteOrder bo = OrfParser::decode(exifData_,
                                          iptcData_,
                                          xmpData_,
@@ -202,7 +210,11 @@ namespace Exiv2 {
                      ed.end());
         }
 
+#ifdef EXV_USING_CPP_ELEVEN
+        std::unique_ptr<TiffHeaderBase> header(new OrfHeader(byteOrder));
+#else
         std::auto_ptr<TiffHeaderBase> header(new OrfHeader(byteOrder));
+#endif
         return TiffParserWorker::encode(io,
                                         pData,
                                         size,
@@ -219,7 +231,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newOrfInstance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new OrfImage(std::move(io), create));
+#else
         Image::AutoPtr image(new OrfImage(io, create));
+#endif
         if (!image->good()) {
             image.reset();
         }

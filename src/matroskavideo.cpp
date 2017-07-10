@@ -482,8 +482,13 @@ namespace Exiv2 {
 
     using namespace Exiv2::Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    MatroskaVideo::MatroskaVideo(BasicIo::AutoPtr io)
+        : Image(ImageType::mkv, mdNone, std::move(io))
+#else
     MatroskaVideo::MatroskaVideo(BasicIo::AutoPtr io)
         : Image(ImageType::mkv, mdNone, io)
+#endif
     {
     } // MatroskaVideo::MatroskaVideo
 
@@ -743,7 +748,11 @@ namespace Exiv2 {
 
     Image::AutoPtr newMkvInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new MatroskaVideo(std::move(io)));
+#else
         Image::AutoPtr image(new MatroskaVideo(io));
+#endif
         if (!image->good()) {
             image.reset();
         }

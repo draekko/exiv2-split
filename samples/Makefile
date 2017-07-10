@@ -118,7 +118,7 @@ DEP = $(BINSRC:%.cpp=$(DEPDIR)/%.d) $(OTHERSRC:%.cpp=$(DEPDIR)/%.d) $(DEPDIR)/Jz
 endif
 
 PREFIX = /usr/local/lib
-LINK.cc += -rpath $(PREFIX) -L$(PREFIX)
+LINK.cc += -rdynamic -rpath $(PREFIX) -L$(PREFIX)
 
 # TODO: This should really not be here. We should use the installed headers
 # to build the samples. Some errors only show up in this scenario, e.g., errors

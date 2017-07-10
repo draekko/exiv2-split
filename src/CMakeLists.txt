@@ -34,6 +34,7 @@ SET( LIBEXIV2_PRIVATE_HDR canonmn_int.hpp
                           tifffwd_int.hpp
                           tiffimage_int.hpp
                           tiffvisitor_int.hpp
+                          MD5.h
    )
 
 # Add standalone C++ header files to this list
@@ -79,7 +80,7 @@ SET( LIBEXIV2_HDR         ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/asfvideo.hp
                           ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/value.hpp
                           ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/version.hpp
                           ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/webpimage.hpp
-                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/xmp.hpp
+                          ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/xmp_exiv2.hpp
                           ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/xmpsidecar.hpp
                           ${CMAKE_CURRENT_LIST_DIR}/../include/exiv2/utilsvideo.hpp
    )
@@ -139,9 +140,10 @@ SET( LIBEXIV2_SRC         asfvideo.cpp
                           value.cpp
                           version.cpp
                           webpimage.cpp
-                          xmp.cpp
+                          xmp_exiv2.cpp
                           xmpsidecar.cpp
                           utilsvideo.cpp
+                          MD5.cpp
    )
 
 IF( EXIV2_ENABLE_WEBREADY )
@@ -186,14 +188,8 @@ ENDIF( EXIV2_ENABLE_PNG )
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR})
 
-##
-# add xmp source if xmp is requested and xmp library not built
-IF( EXIV2_ENABLE_XMP )
-    IF( NOT EXIV2_ENABLE_LIBXMP )
-        SET( LIBEXIV2_SRC ${XMPSRC} ${LIBEXIV2_SRC} )
-    ENDIF( NOT EXIV2_ENABLE_LIBXMP )
-ENDIF( EXIV2_ENABLE_XMP )
 
+IF ( EXV_HAS_XMP_SDK_LIBS )
 ##
 # Create source file lists for applications
 # exiv2 application
@@ -213,17 +209,22 @@ SET( CONNTEST             ../samples/conntest.cpp)
 SET( EXIFPRINT            ../samples/exifprint.cpp)
 # cmdfiletest application
 SET( REMOTETEST           ../samples/remotetest.cpp)
+ENDIF()
 
 ##
 # modify source lists to suit environment
 IF(NOT HAVE_TIMEGM )
     SET( LIBEXIV2_SRC     ${LIBEXIV2_SRC} localtime.c    )
+    IF ( EXV_HAS_XMP_SDK_LIBS )
     SET( EXIV2_SRC        ${EXIV2_SRC}    localtime.c    )
+    ENDIF()
     SET( PATHTEST_SRC     ${PATHTEST_SRC} localtime.c    )
 ENDIF( NOT HAVE_TIMEGM )
 
 IF( MSVC )
+    IF ( EXV_HAS_XMP_SDK_LIBS )
     SET( EXIV2_SRC        ${EXIV2_SRC}    getopt_win32.c )
+    ENDIF()
     SET( LIBEXIV2_SRC     ${LIBEXIV2_SRC} getopt_win32.c )
 ENDIF( MSVC )
 
@@ -258,34 +259,29 @@ ENDIF()
 if ( MSVC )
     source_group("Header Files" FILES ${LIBEXIV2_HDR} )
     TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${ZLIB_LIBRARIES} )
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${EXPAT_LIBRARIES} )
     source_group("Header Files" FILES ${LIBCURL_HDR} )
     TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${CURL_LIBRARIES} )
     source_group("Header Files" FILES ${SSH_HDR} )
     TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${SSH_LIBRARIES} )
 else()
     if ( UNIX AND NOT FREEBSD )
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} dl ${EXPAT_LIBRARIES} )
         TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} dl ${CURL_LIBRARIES} )
         TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} dl ${SSH_LIBRARIES} )
         TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} dl ${CMAKE_THREAD_LIBS_INIT} )
     else()
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${EXPAT_LIBRARIES} )
         TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${CURL_LIBRARIES} )
         TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${SSH_LIBRARIES} )
         TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${CMAKE_THREAD_LIBS_INIT} )
     endif()
 endif()
 
-if( EXIV2_ENABLE_LIBXMP )
-    ADD_DEPENDENCIES( exiv2lib xmp )
+if( EXIV2_ENABLE_XMP )
     if  ( MSVC )
         LINK_DIRECTORIES(${LIBRARY_OUTPUT_PATH}/$(ConfigurationName))
     else()
-        ADD_DEPENDENCIES( exiv2lib xmp)
-        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${EXPAT_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+        TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${CMAKE_THREAD_LIBS_INIT})
     endif(MSVC)
-    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} xmp )
+    TARGET_LINK_LIBRARIES( exiv2lib ${PRIVATE_VAR} ${XMPLIBS} )
 ENDIF()
 
 IF( EXIV2_ENABLE_PNG )
@@ -315,16 +311,21 @@ INSTALL( TARGETS exiv2lib ${INSTALL_TARGET_STANDARD_ARGS} )
 include(../CMake_msvc.txt)
 msvc_runtime_configure(${EXIV2_ENABLE_SHARED} ${EXIV2_ENABLE_DYNAMIC_RUNTIME})
 
-# ******************************************************************************
-# exiv2 application
+ # ******************************************************************************
+ # exiv2 application
+
+IF ( EXV_HAS_XMP_SDK_LIBS )
 ADD_EXECUTABLE( exiv2 ${EXIV2_SRC}  ${EXIV2_HDR} )
-TARGET_LINK_LIBRARIES( exiv2 exiv2lib ${LIBINTL_LIBRARIES} )
+TARGET_LINK_LIBRARIES( exiv2 exiv2lib )
 INSTALL( TARGETS exiv2 ${INSTALL_TARGET_STANDARD_ARGS} )
+ENDIF()
 
 # ******************************************************************************
 # connection test application
+IF ( EXV_HAS_XMP_SDK_LIBS )
 ADD_EXECUTABLE( conntest ${CONNTEST} )
-TARGET_LINK_LIBRARIES( conntest ${PRIVATE_VAR}  exiv2lib ${CURL_LIBRARIES} ${SSH_LIBRARIES} ${LIBINTL_LIBRARIES} )
+TARGET_LINK_LIBRARIES( conntest ${PRIVATE_VAR}  exiv2lib ${CURL_LIBRARIES} ${SSH_LIBRARIES})
+ENDIF()
 
 # ******************************************************************************
 # exifprint application
@@ -333,8 +334,10 @@ TARGET_LINK_LIBRARIES( conntest ${PRIVATE_VAR}  exiv2lib ${CURL_LIBRARIES} ${SSH
 
 # ******************************************************************************
 # remotetest application
+IF ( EXV_HAS_XMP_SDK_LIBS )
 ADD_EXECUTABLE( remotetest ${REMOTETEST} )
-TARGET_LINK_LIBRARIES( remotetest exiv2lib ${LIBINTL_LIBRARIES} )
+TARGET_LINK_LIBRARIES( remotetest exiv2lib )
+ENDIF()
 
 # ******************************************************************************
 # Headers

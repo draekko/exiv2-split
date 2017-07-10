@@ -31,7 +31,7 @@
 #include "basicio.hpp"
 #include "exif.hpp"
 #include "iptc.hpp"
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 
 // + standard includes
 #include <string>
@@ -82,7 +82,11 @@ namespace Exiv2 {
     class EXIV2API Image {
     public:
         //! Image auto_ptr type
+#ifdef EXV_USING_CPP_ELEVEN
+        typedef std::unique_ptr<Image> AutoPtr;
+#else
         typedef std::auto_ptr<Image> AutoPtr;
+#endif
 
         //! @name Creators
         //@{

@@ -92,11 +92,21 @@ endif
 ENABLE_XMP = @ENABLE_XMP@
 
 ifdef ENABLE_XMP
-        XMPSDK_LIBRARY = xmpsdk
         XMPSDK_DIR = $(top_srcdir)/xmpsdk
         XMPSDK_CPPFLAGS = -I$(XMPSDK_DIR)/include
-        XMPSDK_LDFLAGS = -L$(XMPSDK_DIR)/src
-        XMPSDK_LIBS = -l$(XMPSDK_LIBRARY)
+        XMPSDK_LDFLAGS = -L$(XMPSDK_DIR)
+        XMPSDK_LIBRARIES = -lXMPCore -lXMPFiles
+        XMPSDK_STATIC_LIBS = $(XMPSDK_DIR)/libXMPCore.a $(XMPSDK_DIR)/libXMPFiles.a
+        ifeq ($(OS),Windows_NT)
+                XMPSDK_CPPFLAGS += -DWIN_ENV=1 -DXMP_WinBuild=1
+        else
+                UNAME_S := $(shell uname -s)
+                ifeq ($(UNAME_S),Linux)
+                        XMPSDK_CPPFLAGS += -DUNIX_ENV=1 -DXMP_UNIXBuild=1
+                else
+                        XMPSDK_CPPFLAGS += -DMAC_ENV=1 -DXMP_MacBuild=1
+                endif
+        endif
 else
         # Enable additional warnings. XMP Toolkit doesn't compile
         # with these.

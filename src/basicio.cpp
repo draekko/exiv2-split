@@ -1599,6 +1599,9 @@ namespace Exiv2 {
         if (p_->isMalloced_ == false) {
             long length = p_->getFileLength();
             if (length < 0) { // unable to get the length of remote file, get the whole file content.
+                if (p_->protocol_ == pBlockFileUri) {
+                    throw Error(1, "the file length is unknown or the file doesn't exist");
+                } else {
                 std::string data;
                 p_->getDataByRange(-1, -1, data);
                 p_->size_ = (size_t) data.length();
@@ -1613,6 +1616,7 @@ namespace Exiv2 {
                     remain -= allow;
                     totalRead += allow;
                     iBlock++;
+                }
                 }
             } else if (length == 0) { // file is empty
                 throw Error(1, "the file length is 0");
@@ -2544,6 +2548,319 @@ namespace Exiv2 {
     }
 #endif
 
+#endif
+
+    class BlockFileIo::BlockFileImpl : public Impl  {
+    public:
+        // TYPES
+        enum OpMode { opRead, opWrite, opSeek };
+#ifdef EXV_UNICODE_PATH
+        //! Used to indicate if the path is stored as a standard or unicode string
+        enum WpMode { wpStandard, wpUnicode };
+#endif
+
+        //! Constructor
+        BlockFileImpl(const std::string&  path,  size_t blockSize);
+        std::string path_;
+#ifdef EXV_UNICODE_PATH
+        //! Constructor accepting a unicode path in an std::wstring
+        BlockFileImpl(const std::wstring& wpath, size_t blockSize);
+        std::wstring wpath_;
+		WpMode wpMode_;                 //!< Indicates which path is in use
+#endif
+        size_t block_;
+        FILE *bfp_;                      //!< File stream pointer
+        std::string openMode_;          //!< File open mode
+        OpMode opMode_;                 //!< File open mode
+
+        // TYPES
+        //! Simple struct stat wrapper for internal use
+        struct StructStat {
+            StructStat() : st_mode(0), st_size(0), st_nlink(0) {}
+            mode_t  st_mode;            //!< Permissions
+            off_t   st_size;            //!< Size
+            nlink_t st_nlink;           //!< Number of hard links (broken on Windows, see winNumberOfLinks())
+        };
+
+        // METHODS
+        int open(const std::string& mode);
+        bool isopen() const;
+        int close();
+        int switchMode(OpMode opMode);
+        int stat(StructStat& buf) const;
+        long read(byte* buf, long start, long rcount);
+        long write(const byte* data, long start, long wcount);
+        /*!
+          @brief Get the length (in bytes) of the file.
+          @return Return -1 if the size is unknown. Otherwise it returns the length of file (in bytes).
+          @throw Error if the server returns the error code.
+         */
+        long getFileLength();
+        /*!
+          @brief Get the data by range.
+          @param lowBlock The start block index.
+          @param highBlock The end block index.
+          @param response The data from the file access.
+          @throw Error if the server returns the error code.
+          @note Set lowBlock = -1 and highBlock = -1 to get the whole file content.
+         */
+        void getDataByRange(long lowBlock, long highBlock, std::string& response);
+        /*!
+          @brief Submit the data to the remote machine. The data replace a part of the file.
+                The replaced part of remote file is indicated by from and to parameters.
+          @param data The data are submitted to the remote machine.
+          @param size The size of data.
+          @param from The start position in the remote file where the data replace.
+          @param to The end position in the remote file where the data replace.
+          @throw Error if it fails.
+         */
+        void writeRemote(const byte* data, size_t size, long from, long to);
+
+    protected:
+        // NOT IMPLEMENTED
+        BlockFileImpl(const BlockFileImpl& rhs); //!< Copy constructor
+        BlockFileImpl& operator=(const BlockFileImpl& rhs); //!< Assignment
+
+    }; // class BlockFileIo::BlockFileImpl
+
+    BlockFileIo::BlockFileImpl::BlockFileImpl(const std::string& path, size_t blockSize):Impl(path, blockSize)
+    {
+        block_ = blockSize;
+        Uri tpath_ = Exiv2::Uri::Parse(path);
+        Exiv2::Uri::Decode(tpath_);
+        path_ = tpath_.Path;
+        bfp_ = 0;
+    }
+#ifdef EXV_UNICODE_PATH
+    BlockFileIo::BlockFileImpl::BlockFileImpl(const std::wstring& wpath, size_t blockSize):Impl(wpath, blockSize)
+    {
+        block_ = blockSize;
+        Uri tpath_ = Exiv2::Uri::Parse(ws2s(wpath));
+        Exiv2::Uri::Decode(tpath_);
+        wpath_ = s2ws(tpath_.Host).append(s2ws(tpath_.Path));
+        bfp_ = 0;
+        wpMode_ = wpUnicode;
+    }
+#endif
+
+    int BlockFileIo::BlockFileImpl::switchMode(OpMode opMode)
+    {
+        assert(bfp_ != 0);
+        if (opMode_ == opMode) return 0;
+        OpMode oldOpMode = opMode_;
+        opMode_ = opMode;
+
+        bool reopen = true;
+        switch(opMode) {
+            case opRead:
+                // Flush if current mode allows reading, else reopen (in mode "r+b"
+                // as in this case we know that we can write to the file)
+                if (openMode_[0] == 'r' || openMode_[1] == '+') reopen = false;
+                break;
+            case opWrite:
+                // Flush if current mode allows writing, else reopen
+                if (openMode_[0] != 'r' || openMode_[1] == '+') reopen = false;
+                break;
+            case opSeek:
+                reopen = false;
+                break;
+        }
+
+        if (!reopen) {
+            // Don't do anything when switching _from_ opSeek mode; we
+            // flush when switching _to_ opSeek.
+            if (oldOpMode == opSeek) return 0;
+
+            // Flush. On msvcrt fflush does not do the job
+            std::fseek(bfp_, 0, SEEK_CUR);
+            return 0;
+        }
+
+        // Reopen the file
+        long offset = std::ftell(bfp_);
+        if (offset == -1) return -1;
+        if (bfp_ != 0) {
+            std::fclose(bfp_);
+            bfp_= 0;
+        }
+        openMode_ = "r+b";
+        opMode_ = opSeek;
+#ifdef EXV_UNICODE_PATH
+        if (wpMode_ == wpUnicode) {
+            bfp_ = ::_wfopen(wpath_.c_str(), s2ws(openMode_).c_str());
+        }
+        else
+#endif
+        {
+            bfp_ = std::fopen(path_.c_str(), openMode_.c_str());
+        }
+        if (!bfp_) return 1;
+        return std::fseek(bfp_, offset, SEEK_SET);
+    } // BlockFileIo::BlockFileImpl::switchMode
+
+    int BlockFileIo::BlockFileImpl::open(const std::string& mode)
+    {
+        close();
+        openMode_ = mode;
+        opMode_ = opSeek;
+#ifdef EXV_UNICODE_PATH
+        if (wpMode_ == wpUnicode) {
+            bfp_ = ::_wfopen(wpath_.c_str(), s2ws(mode).c_str());
+        }
+        else
+#endif
+        {
+            bfp_ = ::fopen(path_.c_str(), mode.c_str());
+        }
+        if (!bfp_) return 1;
+        return 0;
+    } // BlockFileIo::BlockFileImpl::open
+
+    bool BlockFileIo::BlockFileImpl::isopen() const
+    {
+        return bfp_ != 0;
+    } // BlockFileIo::BlockFileImpl::isopen
+
+    int BlockFileIo::BlockFileImpl::close()
+    {
+        int rc = 0;
+        if (bfp_ != 0) {
+            if (std::fclose(bfp_) != 0) rc |= 1;
+            bfp_= 0;
+        }
+        return rc;
+    } // BlockFileIo::BlockFileImpl::close
+
+    int BlockFileIo::BlockFileImpl::stat(StructStat& buf) const
+    {
+        int ret = 0;
+#ifdef EXV_UNICODE_PATH
+        if (wpMode_ == wpUnicode) {
+            struct _stat st;
+            ret = ::_wstat(wpath_.c_str(), &st);
+            if (0 == ret) {
+                buf.st_size = st.st_size;
+                buf.st_mode = st.st_mode;
+                buf.st_nlink = st.st_nlink;
+            }
+        }
+        else
+#endif
+        {
+            struct stat st;
+
+            ret = ::stat(path_.c_str(), &st);
+            if (0 == ret) {
+                buf.st_size = st.st_size;
+                buf.st_nlink = st.st_nlink;
+                buf.st_mode = st.st_mode;
+            }
+        }
+        return ret;
+    } // BlockFileIo::BlockFileImpl::stat
+
+    long BlockFileIo::BlockFileImpl::read(byte* buf, long start, long rcount)
+    {
+        assert(bfp_ != 0);
+        if (switchMode(opRead) != 0) {
+            return 0;
+        }
+        if (std::fseek(bfp_, start, SEEK_SET) != 0) {
+            return 0;
+        }
+        return (long)std::fread(buf, 1, rcount, bfp_);
+    } // BlockFileIo::BlockFileImpl::read
+
+    long BlockFileIo::BlockFileImpl::write(const byte* data, long start, long wcount)
+    {
+        assert(bfp_ != 0);
+        if (switchMode(opWrite) != 0) {
+            return 0;
+        }
+        if (std::fseek(bfp_, start, SEEK_SET) != 0) {
+            return 0;
+        }
+        long result = (long)std::fwrite(data, 1, wcount, bfp_);
+        return result;
+    }
+
+    long BlockFileIo::BlockFileImpl::getFileLength()
+    {
+#ifdef WIN32
+        LARGE_INTEGER size;
+        WIN32_FILE_ATTRIBUTE_DATA fad;
+#ifdef EXV_UNICODE_PATH
+        if (wpMode_ == wpUnicode) {
+            if (!GetFileAttributesExW(wpath_.c_str(), GetFileExInfoStandard, &fad)) {
+                return -1;
+            }
+        } else
+#endif
+        {
+            if (!GetFileAttributesEx(path_.c_str(), GetFileExInfoStandard, &fad)) {
+                return -1;
+            }
+        }
+        size.HighPart = fad.nFileSizeHigh;
+        size.LowPart = fad.nFileSizeLow;
+        return size.QuadPart;
+#else
+        StructStat buf;
+        int ret = stat(buf);
+
+        if (ret != 0) return -1;
+        return buf.st_size;
+#endif
+    } // BlockFileIo::BlockFileImpl::getFileLength
+
+    void BlockFileIo::BlockFileImpl::getDataByRange(long lowBlock, long highBlock, std::string& response)
+    {
+        response = "";
+
+        if ( open("rb+") == 0 ) {
+            if (lowBlock > -1 && highBlock > -1) {
+                uint64_t start = lowBlock * blockSize_;
+                uint64_t end = ((highBlock + 1) * blockSize_ - 1);
+                byte *data = new byte[end - start + 2];
+                if (read(data, start, end - start + 1) != 0) {
+                    std::string strdata((char*)data, end - start + 1);
+                    response = strdata;
+                    if ( isopen() ) close();
+                    delete[] data;
+                } else {
+                    if ( isopen() ) close();
+                    delete[] data;
+                    throw Error(55, "getDataByRange", 101);
+                }
+                return;
+            }
+        }
+
+        if ( isopen() ) close();
+
+    } // BlockFileIo::BlockFileImpl::getDataByRange
+
+    void BlockFileIo::BlockFileImpl::writeRemote(const byte* data, size_t size, long from, long to)
+    {
+        if ( open("rb+") == 0 ) {
+            if (write(data, from, size) == 0) {
+                if (isopen()) close();
+                throw Error(55, "writeRemote", 202);
+            }
+        }
+
+        if ( isopen() ) close();
+    } // BlockFileIo::BlockFileImpl::writeRemote
+
+    BlockFileIo::BlockFileIo(const std::string& path, size_t blockSize)
+    {
+        p_ = new BlockFileImpl(path, blockSize);
+    }
+#ifdef EXV_UNICODE_PATH
+    BlockFileIo::BlockFileIo(const std::wstring& wpath, size_t blockSize)
+    {
+         p_ = new BlockFileImpl(wpath, blockSize);
+    }
 #endif
 
     // *************************************************************************

@@ -296,10 +296,17 @@ namespace Exiv2 {
 
     using namespace Exiv2::Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    AsfVideo::AsfVideo(BasicIo::AutoPtr io)
+        : Image(ImageType::asf, mdNone, std::move(io))
+    {
+    } // AsfVideo::AsfVideo
+#else
     AsfVideo::AsfVideo(BasicIo::AutoPtr io)
         : Image(ImageType::asf, mdNone, io)
     {
     } // AsfVideo::AsfVideo
+#endif
 
     std::string AsfVideo::mimeType() const
     {
@@ -792,7 +799,11 @@ namespace Exiv2 {
 
     Image::AutoPtr newAsfInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new AsfVideo(std::move(io)));
+#else
         Image::AutoPtr image(new AsfVideo(io));
+#endif
         if (!image->good()) {
             image.reset();
         }

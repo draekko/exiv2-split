@@ -52,9 +52,9 @@ struct MD5_CTX {
 	UWORD32 in[16];
 };
 
-extern void MD5Init(struct MD5_CTX *context);
-extern void MD5Update(struct MD5_CTX *context, md5byte const *buf, unsigned len);
-extern void MD5Final(unsigned char digest[16], struct MD5_CTX *context);
-extern void MD5Transform(UWORD32 buf[4], UWORD32 const in[16]);
+extern void EXIV2_MD5Init(struct MD5_CTX *context);
+extern void EXIV2_MD5Update(struct MD5_CTX *context, md5byte const *buf, unsigned len);
+extern void EXIV2_MD5Final(unsigned char digest[16], struct MD5_CTX *context);
+extern void EXIV2_MD5Transform(UWORD32 buf[4], UWORD32 const in[16]);
 
 #endif

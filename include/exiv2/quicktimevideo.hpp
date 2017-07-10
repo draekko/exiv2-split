@@ -162,6 +162,16 @@ namespace Exiv2 {
          */
         void previewTagDecoder(unsigned long size);
         /*!
+          @brief Fetch meta key tags and extract XMP Data
+          @param size Size of the data block used to store Tag Information.
+         */
+        void uuidXMPTagsDecoder(unsigned long size);
+        /*!
+          @brief Fetch meta key tags and extract XMP Data
+          @param size Size of the data block used to store Tag Information.
+         */
+        void XMPTagsDecoder(unsigned long size);
+        /*!
           @brief Interpret Meta Keys Tags, and save it
               in the respective XMP container.
           @param size Size of the data block used to store Tag Information.

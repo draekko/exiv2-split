@@ -1079,8 +1079,13 @@ namespace {
 namespace Exiv2
 {
 
+#ifdef EXV_USING_CPP_ELEVEN
+    EpsImage::EpsImage(BasicIo::AutoPtr io, bool create)
+            : Image(ImageType::eps, mdXmp, std::move(io))
+#else
     EpsImage::EpsImage(BasicIo::AutoPtr io, bool create)
             : Image(ImageType::eps, mdXmp, io)
+#endif
     {
         //LogMsg::setLevel(LogMsg::debug);
         if (create) {
@@ -1157,7 +1162,11 @@ namespace Exiv2
     // free functions
     Image::AutoPtr newEpsInstance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new EpsImage(std::move(io), create));
+#else
         Image::AutoPtr image(new EpsImage(io, create));
+#endif
         if (!image->good()) {
             image.reset();
         }

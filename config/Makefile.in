@@ -52,11 +52,11 @@
 SHELL = /bin/sh
 ENABLE_XMP = 1
 
-.PHONY: all doc config samples xmpsdk                \
+.PHONY: all doc config samples                 \
         mostlyclean clean distclean maintainer-clean \
         install uninstall tests teste testv
 
-all install: config/config.mk xmpsdk
+all install: config/config.mk
 	cd src && $(MAKE) $(MAKECMDGOALS)
 	cd po && $(MAKE) $(MAKECMDGOALS)
 
@@ -133,15 +133,11 @@ configure:
 config:
 	cd config && $(MAKE) -f config.make $(MAKECMDGOALS)
 
-xmpsdk: config/config.mk
-	if test "x$(ENABLE_XMP)" = "x1"; then cd xmpsdk/src && $(MAKE) $@; fi;
-
 mostlyclean clean: config/config.mk
 	cd src && $(MAKE) $(MAKECMDGOALS)
 	cd doc && $(MAKE) $(MAKECMDGOALS)
 	cd samples && $(MAKE) $(MAKECMDGOALS)
 	cd test && $(MAKE) $(MAKECMDGOALS)
-	cd xmpsdk/src && $(MAKE) $(MAKECMDGOALS)
 	cd config && $(MAKE) -f config.make $(MAKECMDGOALS)
 	cd po && $(MAKE) $(MAKECMDGOALS)
 	rm -f include/exiv2/exv_conf.h

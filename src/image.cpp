@@ -152,7 +152,11 @@ namespace Exiv2 {
     Image::Image(int              imageType,
                  uint16_t         supportedMetadata,
                  BasicIo::AutoPtr io)
+#ifdef EXV_USING_CPP_ELEVEN
+        : io_(std::move(io)),
+#else
         : io_(io),
+#endif
           pixelWidth_(0),
           pixelHeight_(0),
           imageType_(imageType),
@@ -344,6 +348,7 @@ namespace Exiv2 {
         const size_t dirSize = 32;
         DataBuf  dir(dirSize);
         bool bPrint = option == kpsBasic || option == kpsRecursive;
+        int exitLoop = 0;
 
         do {
             // Read top of directory
@@ -352,12 +357,12 @@ namespace Exiv2 {
             uint16_t   dirLength = byteSwap2(dir,0,bSwap);
 
             bool tooBig = dirLength > 500;
-            if ( tooBig ) throw Error(55);
 
             if ( bFirst && bPrint ) {
                 out << Internal::indent(depth) << Internal::stringFormat("STRUCTURE OF TIFF FILE (%c%c): ",c,c) << io.path() << std::endl;
                 if ( tooBig ) out << Internal::indent(depth) << "dirLength = " << dirLength << std::endl;
             }
+            if  (tooBig) break;
 
             // Read the dictionary
             for ( int i = 0 ; i < dirLength ; i ++ ) {
@@ -377,9 +382,8 @@ namespace Exiv2 {
                 // Break for unknown tag types else we may segfault.
                 if ( !typeValid(type) ) {
                     std::cerr << "invalid type value detected in Image::printIFDStructure:  " << type << std::endl;
-                    start = 0; // break from do loop
-                    throw Error(56);
-                    break; // break from for loop
+                    exitLoop = 1;
+                    break;
                 }
 
                 std::string sp  = "" ; // output spacer
@@ -400,7 +404,9 @@ namespace Exiv2 {
                                 ;
 
                 // if ( offset > io.size() ) offset = 0; // Denial of service?
-                DataBuf  buf(size*count + pad+20);  // allocate a buffer
+                int buffer_size = size * count + pad + 20;
+                if (buffer_size < 4) buffer_size = 4;
+                DataBuf  buf(buffer_size);  // allocate a buffer
                 std::memcpy(buf.pData_,dir.pData_+8,4);  // copy dir[8:11] into buffer (short strings)
                 if ( count*size > 4 ) {            // read into buffer
                     size_t   restore = io.tell();  // save
@@ -488,9 +494,13 @@ namespace Exiv2 {
                     out.write((const char*)buf.pData_,count);
                 }
             }
-            if ( start ) {
+            if (exitLoop == 1) {
+                out.flush();
+                break;
+            } else {
                 io.read(dir.pData_, 4);
                 start = tooBig ? 0 : byteSwap4(dir,0,bSwap);
+                out.flush();
             }
         } while (start) ;
 
@@ -798,6 +808,8 @@ namespace Exiv2 {
     BasicIo::AutoPtr ImageFactory::createIo(const std::string& path, bool useCurl)
     {
         Protocol fProt = fileProtocol(path);
+        if (fProt == pBlockFileUri)
+            return BasicIo::AutoPtr(new BlockFileIo(path)); // may throw
 #if EXV_USE_SSH == 1
         if (fProt == pSsh || fProt == pSftp) {
             return BasicIo::AutoPtr(new SshIo(path)); // may throw
@@ -824,6 +836,8 @@ namespace Exiv2 {
     BasicIo::AutoPtr ImageFactory::createIo(const std::wstring& wpath, bool useCurl)
     {
         Protocol fProt = fileProtocol(wpath);
+        if (fProt == pBlockFileUri)
+            return BasicIo::AutoPtr(new BlockFileIo(wpath)); // may throw
 #if EXV_USE_SSH == 1
         if (fProt == pSsh || fProt == pSftp) {
             return BasicIo::AutoPtr(new SshIo(wpath));
@@ -862,7 +876,11 @@ namespace Exiv2 {
     Image::AutoPtr ImageFactory::open(const byte* data, long size)
     {
         BasicIo::AutoPtr io(new MemIo(data, size));
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image = open(std::move(io)); // may throw
+#else
         Image::AutoPtr image = open(io); // may throw
+#endif
         if (image.get() == 0) throw Error(12);
         return image;
     }
@@ -874,7 +892,11 @@ namespace Exiv2 {
         }
         for (unsigned int i = 0; registry[i].imageType_ != ImageType::none; ++i) {
             if (registry[i].isThisType_(*io, false)) {
+#ifdef EXV_USING_CPP_ELEVEN
+                return registry[i].newInstance_(std::move(io), false);
+#else
                 return registry[i].newInstance_(io, false);
+#endif
             }
         }
         return Image::AutoPtr();
@@ -883,14 +905,23 @@ namespace Exiv2 {
     Image::AutoPtr ImageFactory::create(int type,
                                         const std::string& path)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        std::unique_ptr<FileIo> fileIo(new FileIo(path));
+#else
         std::auto_ptr<FileIo> fileIo(new FileIo(path));
+#endif
         // Create or overwrite the file, then close it
         if (fileIo->open("w+b") != 0) {
             throw Error(10, path, "w+b", strError());
         }
         fileIo->close();
+#ifdef EXV_USING_CPP_ELEVEN
+        BasicIo::AutoPtr io(std::move(fileIo));
+        Image::AutoPtr image = create(type, std::move(io));
+#else
         BasicIo::AutoPtr io(fileIo);
         Image::AutoPtr image = create(type, io);
+#endif
         if (image.get() == 0) throw Error(13, type);
         return image;
     }
@@ -899,14 +930,23 @@ namespace Exiv2 {
     Image::AutoPtr ImageFactory::create(int type,
                                         const std::wstring& wpath)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        std::unique_ptr<FileIo> fileIo(new FileIo(wpath));
+#else
         std::auto_ptr<FileIo> fileIo(new FileIo(wpath));
+#endif
         // Create or overwrite the file, then close it
         if (fileIo->open("w+b") != 0) {
             throw WError(10, wpath, "w+b", strError().c_str());
         }
         fileIo->close();
+#ifdef EXV_USING_CPP_ELEVEN
+        BasicIo::AutoPtr io(std::move(fileIo));
+        Image::AutoPtr image = create(type, std::move(io));
+#else
         BasicIo::AutoPtr io(fileIo);
         Image::AutoPtr image = create(type, io);
+#endif
         if (image.get() == 0) throw Error(13, type);
         return image;
     }
@@ -915,7 +955,11 @@ namespace Exiv2 {
     Image::AutoPtr ImageFactory::create(int type)
     {
         BasicIo::AutoPtr io(new MemIo);
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image = create(type, std::move(io));
+#else
         Image::AutoPtr image = create(type, io);
+#endif
         if (image.get() == 0) throw Error(13, type);
         return image;
     }
@@ -926,7 +970,11 @@ namespace Exiv2 {
         // BasicIo instance does not need to be open
         const Registry* r = find(registry, type);
         if (0 != r) {
+#ifdef EXV_USING_CPP_ELEVEN
+            return r->newInstance_(std::move(io), true);
+#else
             return r->newInstance_(io, true);
+#endif
         }
         return Image::AutoPtr();
     } // ImageFactory::create

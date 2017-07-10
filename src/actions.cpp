@@ -42,7 +42,7 @@ EXIV2_RCSID("@(#) $Id: actions.cpp 4719 2017-03-08 20:42:28Z robinwmills $")
 #include "exif.hpp"
 #include "easyaccess.hpp"
 #include "iptc.hpp"
-#include "xmp.hpp"
+#include "xmp_exiv2.hpp"
 #include "preview.hpp"
 #include "futils.hpp"
 #include "i18n.h"                // NLS support.
@@ -228,7 +228,11 @@ namespace Action {
             Task* t = i->second;
             return t->clone();
         }
+#ifdef EXV_USING_CPP_ELEVEN
+        return Task::AutoPtr(nullptr);
+#else
         return Task::AutoPtr(0);
+#endif
     } // TaskFactory::create
 
     Print::~Print()
@@ -284,7 +288,11 @@ namespace Action {
                       << _("Failed to open the file\n");
             return -1;
         }
+#ifdef EXV_USING_CPP_ELEVEN
+        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(std::move(path_));
+#else
         Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(path_);
+#endif
         assert(image.get() != 0);
         image->readMetadata();
         Exiv2::ExifData& exifData = image->exifData();
@@ -2113,7 +2121,11 @@ namespace {
         if ( bStdin )  Params::instance().getStdin(stdIn);
         Exiv2::BasicIo::AutoPtr ioStdin = Exiv2::BasicIo::AutoPtr(new Exiv2::MemIo(stdIn.pData_,stdIn.size_));
 
+#ifdef EXV_USING_CPP_ELEVEN
+        Exiv2::Image::AutoPtr sourceImage = bStdin ? Exiv2::ImageFactory::open(std::move(ioStdin)) : Exiv2::ImageFactory::open(std::move(source));
+#else
         Exiv2::Image::AutoPtr sourceImage = bStdin ? Exiv2::ImageFactory::open(ioStdin) : Exiv2::ImageFactory::open(source);
+#endif
         assert(sourceImage.get() != 0);
         sourceImage->readMetadata();
 

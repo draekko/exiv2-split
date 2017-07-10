@@ -219,7 +219,11 @@ namespace Exiv2 {
             // Assumption is that the corresponding TIFF entry doesn't exist
             TiffPath tiffPath;
             TiffCreator::getPath(tiffPath, object->tag(), object->group(), root_);
+#ifdef EXV_USING_CPP_ELEVEN
+            pRoot_->addPath(object->tag(), tiffPath, pRoot_, std::move(clone));
+#else
             pRoot_->addPath(object->tag(), tiffPath, pRoot_, clone);
+#endif
 #ifdef DEBUG
             ExifKey key(object->tag(), groupName(object->group()));
             std::cerr << "Copied " << key << "\n";
@@ -1298,7 +1302,11 @@ namespace Exiv2 {
             // the TIFF structure table
             assert(tc.get());
             tc->setStart(p);
+#ifdef EXV_USING_CPP_ELEVEN
+            object->addChild(std::move(tc));
+#else
             object->addChild(tc);
+#endif
             p += 12;
         }
 
@@ -1310,7 +1318,11 @@ namespace Exiv2 {
 #endif
                 return;
             }
+#ifdef EXV_USING_CPP_ELEVEN
+            TiffComponent::AutoPtr tc(nullptr);
+#else
             TiffComponent::AutoPtr tc(0);
+#endif
             uint32_t next = getLong(p, byteOrder());
             if (next) {
                 tc = TiffCreator::create(Tag::next, object->group());
@@ -1330,7 +1342,11 @@ namespace Exiv2 {
                     return;
                 }
                 tc->setStart(pData_ + baseOffset() + next);
+#ifdef EXV_USING_CPP_ELEVEN
+                object->addNext(std::move(tc));
+#else
                 object->addNext(tc);
+#endif
             }
         } // object->hasNext()
 
@@ -1372,7 +1388,11 @@ namespace Exiv2 {
                 TiffComponent::AutoPtr td(new TiffDirectory(object->tag(),
                                                             static_cast<IfdId>(object->newGroup_ + i)));
                 td->setStart(pData_ + baseOffset() + offset);
+#ifdef EXV_USING_CPP_ELEVEN
+                object->addChild(std::move(td));
+#else
                 object->addChild(td);
+#endif
             }
         }
 #ifndef SUPPRESS_WARNINGS
@@ -1549,7 +1569,11 @@ namespace Exiv2 {
         	::free(buffer);
         }
 
+#ifdef EXV_USING_CPP_ELEVEN
+        object->setValue(std::move(v));
+#else
         object->setValue(v);
+#endif
         object->setData(pData, size);
         object->setOffset(offset);
         object->setIdx(nextIdx(object->group()));
@@ -1648,7 +1672,11 @@ namespace Exiv2 {
         assert(v.get());
         v->read(pData, size, bo);
 
+#ifdef EXV_USING_CPP_ELEVEN
+        object->setValue(std::move(v));
+#else
         object->setValue(v);
+#endif
         object->setOffset(0);
         object->setIdx(nextIdx(object->group()));
 

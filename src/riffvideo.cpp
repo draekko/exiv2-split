@@ -507,8 +507,13 @@ namespace Exiv2 {
 namespace Exiv2 {
     using namespace Exiv2::Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    RiffVideo::RiffVideo(BasicIo::AutoPtr io)
+            : Image(ImageType::riff, mdNone, std::move(io))
+#else
     RiffVideo::RiffVideo(BasicIo::AutoPtr io)
             : Image(ImageType::riff, mdNone, io)
+#endif
     {
     } // RiffVideo::RiffVideo
 
@@ -1311,7 +1316,11 @@ namespace Exiv2 {
 
     Image::AutoPtr newRiffInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new RiffVideo(std::move(io)));
+#else
         Image::AutoPtr image(new RiffVideo(io));
+#endif
         if (!image->good()) {
             image.reset();
         }

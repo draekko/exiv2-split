@@ -69,8 +69,13 @@ namespace Exiv2 {
 
     using namespace Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    PngImage::PngImage(BasicIo::AutoPtr io, bool create)
+            : Image(ImageType::png, mdExif | mdIptc | mdXmp | mdComment, std::move(io))
+#else
     PngImage::PngImage(BasicIo::AutoPtr io, bool create)
             : Image(ImageType::png, mdExif | mdIptc | mdXmp | mdComment, io)
+#endif
     {
         if (create)
         {
@@ -707,7 +712,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newPngInstance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new PngImage(std::move(io), create));
+#else
         Image::AutoPtr image(new PngImage(io, create));
+#endif
         if (!image->good())
         {
             image.reset();

@@ -46,8 +46,13 @@ EXIV2_RCSID("@(#) $Id$")
 // class member definitions
 namespace Exiv2 {
 
+#ifdef EXV_USING_CPP_ELEVEN
+    TgaImage::TgaImage(BasicIo::AutoPtr io)
+        : Image(ImageType::tga, mdNone, std::move(io))
+#else
     TgaImage::TgaImage(BasicIo::AutoPtr io)
         : Image(ImageType::tga, mdNone, io)
+#endif
     {
     } // TgaImage::TgaImage
 
@@ -132,7 +137,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newTgaInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new TgaImage(std::move(io)));
+#else
         Image::AutoPtr image(new TgaImage(io));
+#endif
         if (!image->good())
         {
             image.reset();

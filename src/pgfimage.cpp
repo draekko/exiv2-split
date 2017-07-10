@@ -86,9 +86,15 @@ namespace Exiv2 {
         return result;
     }
 
+#ifdef EXV_USING_CPP_ELEVEN
+    PgfImage::PgfImage(BasicIo::AutoPtr io, bool create)
+            : Image(ImageType::pgf, mdExif | mdIptc| mdXmp | mdComment, std::move(io))
+            , bSwap_(isBigEndianPlatform())
+#else
     PgfImage::PgfImage(BasicIo::AutoPtr io, bool create)
             : Image(ImageType::pgf, mdExif | mdIptc| mdXmp | mdComment, io)
             , bSwap_(isBigEndianPlatform())
+#endif
     {
         if (create)
         {
@@ -321,7 +327,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newPgfInstance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new PgfImage(std::move(io), create));
+#else
         Image::AutoPtr image(new PgfImage(io, create));
+#endif
         if (!image->good())
         {
             image.reset();

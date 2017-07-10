@@ -51,8 +51,13 @@ namespace Exiv2 {
 
     using namespace Internal;
 
+#ifdef EXV_USING_CPP_ELEVEN
+    Cr2Image::Cr2Image(BasicIo::AutoPtr io, bool /*create*/)
+        : Image(ImageType::cr2, mdExif | mdIptc | mdXmp, std::move(io))
+#else
     Cr2Image::Cr2Image(BasicIo::AutoPtr io, bool /*create*/)
         : Image(ImageType::cr2, mdExif | mdIptc | mdXmp, io)
+#endif
     {
     } // Cr2Image::Cr2Image
 
@@ -108,7 +113,11 @@ namespace Exiv2 {
         }
         clearMetadata();
         std::ofstream devnull;
+        if (nullptr != dynamic_cast<RemoteIo*>(io_.get()))
+        {
         printStructure(devnull, kpsRecursive, 0);
+        }
+
         ByteOrder bo = Cr2Parser::decode(exifData_,
                                          iptcData_,
                                          xmpData_,
@@ -190,7 +199,11 @@ namespace Exiv2 {
                      ed.end());
         }
 
+#ifdef EXV_USING_CPP_ELEVEN
+        std::unique_ptr<TiffHeaderBase> header(new Cr2Header(byteOrder));
+#else
         std::auto_ptr<TiffHeaderBase> header(new Cr2Header(byteOrder));
+#endif
         OffsetWriter offsetWriter;
         offsetWriter.setOrigin(OffsetWriter::cr2RawIfdOffset, Cr2Header::offset2addr(), byteOrder);
         return TiffParserWorker::encode(io,
@@ -209,7 +222,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newCr2Instance(BasicIo::AutoPtr io, bool create)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new Cr2Image(std::move(io), create));
+#else
         Image::AutoPtr image(new Cr2Image(io, create));
+#endif
         if (!image->good()) {
             image.reset();
         }

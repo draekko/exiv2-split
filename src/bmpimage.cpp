@@ -46,10 +46,17 @@ EXIV2_RCSID("@(#) $Id$")
 // class member definitions
 namespace Exiv2 {
 
+#ifdef EXV_USING_CPP_ELEVEN
+    BmpImage::BmpImage(BasicIo::AutoPtr io)
+        : Image(ImageType::bmp, mdNone, std::move(io))
+    {
+    } // BmpImage::BmpImage
+#else
     BmpImage::BmpImage(BasicIo::AutoPtr io)
         : Image(ImageType::bmp, mdNone, io)
     {
     } // BmpImage::BmpImage
+#endif
 
     std::string BmpImage::mimeType() const
     {
@@ -131,7 +138,11 @@ namespace Exiv2 {
     // free functions
     Image::AutoPtr newBmpInstance(BasicIo::AutoPtr io, bool /*create*/)
     {
+#ifdef EXV_USING_CPP_ELEVEN
+        Image::AutoPtr image(new BmpImage(std::move(io)));
+#else
         Image::AutoPtr image(new BmpImage(io));
+#endif
         if (!image->good())
         {
             image.reset();

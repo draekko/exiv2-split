@@ -58,7 +58,11 @@ try {
     Exiv2::BasicIo::AutoPtr memIo(new Exiv2::MemIo);
     memIo->transfer(*fileIo);
 
+#ifdef EXV_USING_CPP_ELEVEN
+    Exiv2::Image::AutoPtr readImg = Exiv2::ImageFactory::open(std::move(memIo));
+#else
     Exiv2::Image::AutoPtr readImg = Exiv2::ImageFactory::open(memIo);
+#endif
     assert(readImg.get() != 0);
     readImg->readMetadata();
 
