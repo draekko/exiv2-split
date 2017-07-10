@@ -32,11 +32,3 @@ Compile the SDK.
 Copy the generated files XMPCoreStatic.lib, and XMPFilesStatic.lib from the Adobe XMP SDK public folder.
 Make sure to rename XMPCoreStatic.lib to libXMPCore.lib, and rename XMPFilesStatic.lib to libXMPFiles.lib
 as well.
-
-
-Notes
-=====
-
-* On Mac the last version of the Adobe XMP SDK to compile and work with Exiv2 is version CC-2014.12.
-* Linux and Windows work with the latest version (as of now CC-2106.07.) of the Adobe XMP SDK.
-
