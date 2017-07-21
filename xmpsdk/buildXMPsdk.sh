@@ -69,12 +69,15 @@ if [ ! -e Adobe ]; then (
 )
 
 ##
-# copy built libraries into libxmpsdk.a
-(   cd Adobe/XMP-Toolkit-SDK-CC201607
-    # report what we can see
+# copy headers and built libraries
+(
+    rm -rf include
+    cp -R  Adobe/XMP-Toolkit-SDK-CC201607/public/include include
+
+    # report archives we can see
+    cd Adobe/XMP-Toolkit-SDK-CC201607
     find public -name "*.a" -o -name "*.ar" | xargs ls -alt
     cd ../..
-
 
     # move the library/archives into xmpsdk
     case "$uname" in
@@ -90,16 +93,18 @@ if [ ! -e Adobe ]; then (
     esac
     ls -alt *.a
 
+	if [ 1 == 2 ]; then
     # combine libraries into libxmpsdk.a
-    mkdir  foo
-    mv *.a foo
-    cd     foo
-    for i in *.a; do ar -x $i ; rm -rf $i ; done
-    ar -cq libxmpsdk.a *.o
-    mv     libxmpsdk.a  ..
-    cd ..
-    rm -rf foo
-    ls -alt *.a
+        mkdir  foo
+        mv *.a foo
+        cd     foo
+        for i in *.a; do ar -x $i ; rm -rf $i ; done
+        ar -cq libxmpsdk.a *.o
+        mv     libxmpsdk.a  ..
+        cd ..
+        rm -rf foo
+        ls -alt *.a
+    fi
 )
 
 # That's all Folks!
