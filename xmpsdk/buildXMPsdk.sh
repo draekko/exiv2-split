@@ -13,10 +13,9 @@
 
 uname=$(uname -o)
 supported=0
-if [ "$uname" != "Darwin"     ]; then supported=1 ; fi
-if [ "$uname" != "GNU/Linux"  ]; then supported=1 ; fi
-# if [ "$uname" != "Cygwin"     ]; then supported=1 ; fi
-
+case "$uname" in
+	Darwin|GNU/Linux|Cygwin) supported=1 ;;
+esac
 if [ "$supported" == 0 ]; then
     echo "*** unsupported platform $uname ***"
     exit 1
@@ -53,20 +52,31 @@ if [ ! -e Adobe ]; then (
     if [ "$uname" == "GNU/Linux" ]; then for f in XMPFiles XMPCore; do
        cp ../$f/resource/linux/* ../$f/resource
     done ; fi
-    
-    cmake . -G "Unix Makefiles" -DXMP_ENABLE_SECURE_SETTINGS=OFF -DXMP_BUILD_STATIC=1 -DCMAKE_CL_64=ON -DCMAKE_BUILD_TYPE=Release
-    
+
+    cmake . -G "Unix Makefiles"              \
+            -DXMP_ENABLE_SECURE_SETTINGS=OFF \
+            -DXMP_BUILD_STATIC=1             \
+            -DCMAKE_CL_64=ON                 \
+            -DCMAKE_BUILD_TYPE=Release
     make
 )
 ##
-# copy built libraries and headers to XMPsdk
+# copy built libraries
 (   cd Adobe/XMP-Toolkit-SDK-CC201607
     find public -name "*.a" -o -name "*.ar" | xargs ls -alt
     cd ../..
-    
-    find Adobe/XMP-Toolkit-SDK-CC201607/public -name "*.a" -o -name "*.ar" -exec cp {} . ';'
-    if [ "$uname" == "GNU/Linux" ]; then ./ren-lnx.sh ;fi
-    if [ "$uname" == "Darwin"    ]; then ./ren-mac.sh ;fi
+
+    case "$uname" in
+      GNU/Linux)
+          find Adobe/XMP-Toolkit-SDK-CC201607/public -name "*.ar" -exec cp {} . ';'
+          ./ren-lnx.sh
+      ;;
+
+      Darwin)
+        find Adobe/XMP-Toolkit-SDK-CC201607/public -name "*.a" -exec cp {} . ';'
+        ./ren-mac.sh
+      ;;
+    esac
     ls -alt *.a
 )
 
