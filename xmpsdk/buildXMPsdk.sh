@@ -4,19 +4,20 @@
 # buildXMPsdk.sh
 # TODO:
 #     1) Command-line parser for options such as:
-#	 version of xmpsdk (2014, 2016)
-#	 build options     (64/32 static/dynamic debug/release)
+#	     version of xmpsdk (2014, 2016)
+#	     build options     (64/32 static/dynamic debug/release)
 #        help
-#     2) Cygwin support
+#     2) Cygwin support (in progress)
 #     3) Write buildXMPsdk.cmd (for MSVC)
 ##
 
 uname=$(uname -o)
-supported=0
+
+unset supported
 case "$uname" in
 	Darwin|GNU/Linux|Cygwin) supported=1 ;;
 esac
-if [ "$supported" == 0 ]; then
+if [ -z "$supported" ]; then
     echo "*** unsupported platform $uname ***"
     exit 1
 fi
@@ -40,18 +41,27 @@ if [ ! -e Adobe ]; then (
 # generate Makefile and build
 (   cd Adobe/XMP-Toolkit-SDK-CC201607/build
     ##
-    # modify ProductConfig.cmake (don't link libssp.a)
-    f=ProductConfig.cmake
-    if [ -e $f.orig ]; then
-        mv $f.orig $f
-    fi
-    cp $f $f.orig
-    sed -E -e 's? \$\{XMP_GCC_LIBPATH\}/libssp.a??g' $f.orig > $f
+    # Tweak the code (depends on platform)
+    case "$uname" in
+        GNU/Linux)
+            # modify ProductConfig.cmake (don't link libssp.a)
+            f=ProductConfig.cmake
+            if [ -e $f.orig ]; then mv $f.orig $f ; fi ; cp $f $f.orig
+            sed -E -e 's? \$\{XMP_GCC_LIBPATH\}/libssp.a??g' $f.orig > $f
 
-    # copy resources
-    if [ "$uname" == "GNU/Linux" ]; then for f in XMPFiles XMPCore; do
-       cp ../$f/resource/linux/* ../$f/resource
-    done ; fi
+            # copy resources
+            for f in XMPFiles XMPCore; do
+                cp ../$f/resource/linux/* ../$f/resource
+            done
+        ;;
+
+        Cygwin)
+    	    f=../source/Host_IO-POSIX.cpp
+            if [ -e $f.orig ]; then mv $f.orig $f ; fi ; cp $f $f.orig
+
+            sed -E -e $'s?// Writeable?// Writeable~#include <windows.h>~#ifndef PATH_MAX~#define PATH_MAX 512~#endif?' $f.orig | tr "~" "\n" > $f
+        ;;
+    esac
 
     cmake . -G "Unix Makefiles"              \
             -DXMP_ENABLE_SECURE_SETTINGS=OFF \
@@ -60,14 +70,18 @@ if [ ! -e Adobe ]; then (
             -DCMAKE_BUILD_TYPE=Release
     make
 )
+
 ##
-# copy built libraries
+# copy built libraries into libxmpsdk.a
 (   cd Adobe/XMP-Toolkit-SDK-CC201607
+    # report what we can see
     find public -name "*.a" -o -name "*.ar" | xargs ls -alt
     cd ../..
 
+
+    # move the library/archives into xmpsdk
     case "$uname" in
-      GNU/Linux)
+      Cygwin99|GNU/Linux)
           find Adobe/XMP-Toolkit-SDK-CC201607/public -name "*.ar" -exec cp {} . ';'
           ./ren-lnx.sh
       ;;
@@ -77,6 +91,17 @@ if [ ! -e Adobe ]; then (
         ./ren-mac.sh
       ;;
     esac
+    ls -alt *.a
+
+    # combine libraries into libxmpsdk.a
+    mkdir  foo
+    mv *.a foo
+    cd     foo
+    for i in *.a; do ar -x $i ; rm -rf $i ; done
+    ar -cq libxmpsdk.a *.o
+    mv     libxmpsdk.a  ..
+    cd ..
+    rm -rf foo
     ls -alt *.a
 )
 
