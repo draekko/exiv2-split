@@ -12,15 +12,12 @@
 ##
 
 uname=$(uname -o)
-
-unset supported
 case "$uname" in
-	Darwin|GNU/Linux|Cygwin) supported=1 ;;
+	Darwin|GNU/Linux|Cygwin) ;;
+	*)  echo "*** unsupported platform $uname ***"
+	    exit 1
+	;;
 esac
-if [ -z "$supported" ]; then
-    echo "*** unsupported platform $uname ***"
-    exit 1
-fi
 
 ##
 # Download the code from Adobe
