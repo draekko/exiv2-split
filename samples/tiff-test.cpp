@@ -65,7 +65,12 @@ void mini1(const char* path)
 
 void mini9(const char* path)
 {
+#ifdef EXV_USING_CPP_ELEVEN
+    std::unique_ptr<FileIo> fileIo(new FileIo(path));
+    TiffImage tiffImage(std::move(fileIo), false);
+#else
     TiffImage tiffImage(BasicIo::AutoPtr(new FileIo(path)), false);
+#endif
     tiffImage.readMetadata();
 
     std::cout << "MIME type:  " << tiffImage.mimeType() << "\n";

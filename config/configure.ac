@@ -348,6 +348,25 @@ AC_DEFUN([AX_GCC_VERSION], [
   AC_SUBST([GCC_VERSION])
 ])
 
+case "$host_os" in
+*darwin*)
+    AC_ARG_WITH(sysroot,
+    [  --with-sysroot[[=DIR]]    use OSX SDK in DIR],[
+        if test "$withval" != ""; then
+           SDK_SYSROOT=${withval}
+           CPPFLAGS="${CPPFLAGS} -isysroot ${SDK_SYSROOT} "
+        fi
+    ])
+    AC_ARG_WITH(min-target-sdk,
+    [  --with-min-target-sdk[[=SDKREV]]    use minimum sdk target of (ie. 10.9) ],[
+        if test "$withval" != ""; then
+          SDK_MIN_TARGET=${withval}
+          CPPFLAGS="${CPPFLAGS} -mmacosx-version-min=${SDK_MIN_TARGET} "
+        fi
+    ])
+    ;;
+esac
+
 AC_ARG_ENABLE(stdcpp11,
     [  --disable-stdcpp11    do not use the c++11 standard ],
     STDCPP11_SUPPORT=$enableval, STDCPP11_SUPPORT=$visibility)
@@ -466,6 +485,17 @@ x1)  echo "-- Using Lib SSH.................. YES" ;;
      echo "" ;;
 esac
 fi
+
+case "$host_os" in
+*darwin*)
+    if [ "$SDK_SYSROOT" != "" ]; then
+        echo "-- Using SysRoot.................. $SDK_SYSROOT"
+    fi
+    if [ "$SDK_MIN_TARGET" != "" ]; then
+        echo "-- Using Min. Target SDK ......... $SDK_MIN_TARGET"
+    fi
+    ;;
+esac
 
 echo "------------------------------------------------------------------"
 echo ""

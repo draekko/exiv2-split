@@ -60,8 +60,13 @@ int main(int argc, char* const argv[])
 			std::cout << "exifMetadataCount = " << exifMetadataCount(readImage) << std::endl;
 
 			// create an in-memory file and write the metadata
+#ifdef EXV_USING_CPP_ELEVEN
+      std::unique_ptr<Exiv2::MemIo>  memIo(new Exiv2::MemIo());
+			Exiv2::Image::AutoPtr   memImage(new Exiv2::ExvImage(std::move(memIo),true));
+#else
 			Exiv2::BasicIo::AutoPtr memIo   (new Exiv2::MemIo());
 			Exiv2::Image::AutoPtr   memImage(new Exiv2::ExvImage(memIo,true));
+#endif
 			memImage->setMetadata  (*readImage);
 			memImage->writeMetadata();
 
@@ -74,8 +79,13 @@ int main(int argc, char* const argv[])
 			std::cout << "size = " << size << std::endl;
 
 			// create an in-memory file with buff and read the metadata into buffImage
+#ifdef EXV_USING_CPP_ELEVEN
+      std::unique_ptr<Exiv2::MemIo>  buffIo(new Exiv2::MemIo(buff,size));
+			Exiv2::Image::AutoPtr   buffImage(new Exiv2::ExvImage(std::move(buffIo),false));
+#else
 			Exiv2::BasicIo::AutoPtr buffIo   (new Exiv2::MemIo(buff,size));
 			Exiv2::Image::AutoPtr   buffImage(new Exiv2::ExvImage(buffIo,false));
+#endif
 			assert(buffImage.get() != 0);
 			buffImage->readMetadata();
 
@@ -87,8 +97,13 @@ int main(int argc, char* const argv[])
 			params.copyMetadata(readImage,writeImage);
 		} else {
 			// create an in-memory file
+#ifdef EXV_USING_CPP_ELEVEN
+      std::unique_ptr<Exiv2::MemIo>  memIo(new Exiv2::MemIo());
+			Exiv2::Image::AutoPtr   memImage(new Exiv2::ExvImage(std::move(memIo),true));
+#else
 			Exiv2::BasicIo::AutoPtr memIo   (new Exiv2::MemIo());
 			Exiv2::Image::AutoPtr   memImage(new Exiv2::ExvImage(memIo,true));
+#endif
 			params.copyMetadata(readImage,memImage);
 
 			// read a few bytes from the in-memory file

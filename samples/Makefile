@@ -43,6 +43,24 @@
 #  Requires GNU make.
 #
 
+ifeq ($(OS),Windows_NT)
+    uname_S := Windows
+else
+    uname_S := $(shell uname -s)
+endif
+
+ifeq ($(uname_S), Windows)
+        OS_CPPFLAGS=""
+endif
+ifeq ($(uname_S), Linux)
+        OS_CPPFLAGS=""
+endif
+ifeq ($(uname_S), Darwin)
+        OS_CPPFLAGS= \
+                -mmacosx-version-min=10.9 \
+                -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.12.sdk
+endif
+
 # Default make target
 all: samples
 
@@ -104,6 +122,7 @@ BAR='****************************************'
 
 CPPFLAGS := `pkg-config exiv2 --cflags`
 LDFLAGS := `pkg-config exiv2 --libs`
+CPPFLAGS += $(OS_CPPFLAGS)
 
 BINOBJ = $(BINSRC:.cpp=.o)
 BINARY = $(BINSRC:.cpp=)
@@ -124,7 +143,7 @@ LINK.cc += -rdynamic -rpath $(PREFIX) -L$(PREFIX)
 # to build the samples. Some errors only show up in this scenario, e.g., errors
 # due to missing headers which are not installed (depending on compile-time
 # settings) but may be wrongly included from other headers.
-COMPILE.cc += -I$(top_srcdir)/include -I$(top_srcdir)/include/exiv2 -std=gnu++98 
+COMPILE.cc += -I$(top_srcdir)/include -I$(top_srcdir)/include/exiv2 -std=c++11 -DEXV_USING_CPP_ELEVEN
 
 # ******************************************************************************
 # Rules
